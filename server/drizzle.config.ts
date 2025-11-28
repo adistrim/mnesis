@@ -1,0 +1,12 @@
+import type { Config } from 'drizzle-kit';
+import { settings } from './config/settings';
+
+export default {
+  schema: './db/schema/',
+  out: './drizzle',
+  strict: true,
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: settings.DB_URL
+  }
+} satisfies Config;
