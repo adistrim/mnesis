@@ -1,10 +1,14 @@
 import { settings } from "@/config/settings";
-import { routes } from "./routes";
+import { v1Routes } from "./routes";
 import { serve } from "bun";
 
 serve({
     port: settings.PORT,
-    routes
+    routes: v1Routes,
 });
 
-console.log(`Server started on port ${settings.PORT}`);
+console.log(`
+    Server running
+    URL: ${settings.HOST}:${settings.PORT}
+    Press Ctrl+C to stop.
+`);
