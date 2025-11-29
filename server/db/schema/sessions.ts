@@ -8,13 +8,13 @@ CREATE TABLE sessions (
 
 */
 
-import { date, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const sessions = pgTable("sessions", {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title"),
-    createdAt: date("created_at").defaultNow(),
-})
+    createdAt: timestamp("created_at").defaultNow(),
+});
 
 export type SessionInsert = typeof sessions.$inferInsert;
 export type SessionSelect = typeof sessions.$inferSelect;

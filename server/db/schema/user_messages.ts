@@ -1,4 +1,4 @@
-import { date, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { sessions } from "./sessions";
 
 export const userMessages = pgTable("user_messages", {
@@ -8,7 +8,7 @@ export const userMessages = pgTable("user_messages", {
         .notNull(),
     tokens: integer("tokens").notNull(),
     content: text("content").notNull(),
-    createdAt: date("created_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
 });
 
 export type UserMessageInsert = typeof userMessages.$inferInsert;

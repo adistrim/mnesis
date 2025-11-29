@@ -8,13 +8,13 @@ CREATE TABLE documents (
 );
 
 */
-import { date, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const documents = pgTable("documents", {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     title: text("title"),
     originalText: text("original_text").notNull(),
-    createdAt: date("created_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
 });
 
 export type DocumentInsert = typeof documents.$inferInsert;

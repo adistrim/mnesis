@@ -1,4 +1,4 @@
-import { date, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { aiMessages } from "./ai_messages";
 
 export const aiMessageReasoning = pgTable("ai_message_reasonings", {
@@ -8,7 +8,7 @@ export const aiMessageReasoning = pgTable("ai_message_reasonings", {
         .notNull(),
     tokens: integer("tokens").notNull(),
     content: text("content").notNull(),
-    createdAt: date("created_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
 });
 
 export type AiMessageReasoningInsert = typeof aiMessageReasoning.$inferInsert;
