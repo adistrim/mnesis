@@ -8,5 +8,8 @@ function requireEnvVar(name: string): string {
 
 export const settings = {
     PORT: process.env.PORT || 3000,
+    HOST: process.env.HOST || "http://localhost",
     DB_URL: requireEnvVar("DB_URL"),
+    LLM_HOST_API: requireEnvVar("LLM_HOST_API"),
+    LLM_HOST: requireEnvVar("LLM_HOST"),
 };
