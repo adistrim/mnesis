@@ -1,6 +1,6 @@
 import { requireMethod } from "@/middleware/methodChecker";
 import { withPrefix } from "./utils";
-import { chatRoutes } from "./v1/chat";
+import { chatRoutes } from "./v1/chat/chat";
 import { messageRoutes } from "./v1/message";
 
 function rootRoute() {

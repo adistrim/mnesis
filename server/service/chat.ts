@@ -3,29 +3,36 @@ import { sysPrompt } from "@/prompts";
 import {
     LLMRequestType,
     type CustomResponseType,
-} from "@/lib/openai/openai.types";
+} from "@/lib/openai/openai.type";
 import { isValidLLMResponse } from "@/utils/validateLLMResponse";
-import { saveExchange } from "@/db/repository/message";
+import { ensureSession, saveExchange } from "@/db/repository/message";
+import {
+    databaseError,
+    invalidLLMResponseError,
+    sessionNotFoundError,
+} from "@/lib/errors";
 
 export async function getResponse(
     sessionId: string,
     userPrompt: string,
     requestType: LLMRequestType,
 ) {
+    // ensure session exists
+    const sessionExists = await ensureSession(sessionId);
+    if (!sessionExists) {
+        throw sessionNotFoundError(sessionId);
+    }
+
+    // generate LLM response
     const completion = await genLLMResponse({
         type: requestType,
         sysPrompt: sysPrompt,
         userPrompt,
     });
 
-    const ok = isValidLLMResponse(completion);
-
-    // fallback
-    if (!ok) {
-        return {
-            sessionId,
-            message: "Error during response generation.",
-        };
+    // validate LLM response
+    if (!isValidLLMResponse(completion)) {
+        throw invalidLLMResponseError();
     }
 
     const customMsg = completion.choices[0].message as CustomResponseType;
@@ -43,20 +50,25 @@ export async function getResponse(
     const reasoning = customMsg.reasoning_content;
     const model = completion.model;
 
-    await saveExchange({
-        sessionId: sessionId,
-        user: {
-            content: userPrompt,
-            tokens: prompt_tokens,
-        },
-        ai: {
-            model,
-            content: message,
-            responseTokens: response_tokens,
-            reasoningTokens: reasoning_tokens ?? 0,
-            reasoningContent: reasoning ?? null,
-        },
-    });
+    try {
+        await saveExchange({
+            sessionId: sessionId,
+            user: {
+                content: userPrompt,
+                tokens: prompt_tokens,
+            },
+            ai: {
+                model,
+                content: message,
+                responseTokens: response_tokens,
+                reasoningTokens: reasoning_tokens ?? 0,
+                reasoningContent: reasoning ?? null,
+            },
+        });
+    } catch (error) {
+        console.error("Error saving conversation exchange:", error);
+        throw databaseError("Failed to save conversation exchange");
+    }
 
     const response = {
         sessionId,

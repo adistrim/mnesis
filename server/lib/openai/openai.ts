@@ -5,8 +5,9 @@ import {
     ROLE,
     LLMRequestType,
     type GenLLMResponseParams,
-} from "./openai.types";
+} from "./openai.type";
 import type { ChatCompletion } from "openai/resources";
+import { llmServiceError } from "../errors";
 
 /*
     source: https://api-docs.deepseek.com/quick_start/parameter_settings
@@ -32,10 +33,9 @@ export async function genLLMResponse(
     const { type, sysPrompt, userPrompt } = params;
 
     let model;
-
-    if (type == LLMRequestType.Chat) {
+    if (type === LLMRequestType.Chat) {
         model = MODEL.CHAT;
-    } else if (type == LLMRequestType.Reasoning) {
+    } else if (type === LLMRequestType.Reasoning) {
         model = MODEL.REASONING;
     } else {
         throw new Error(
@@ -52,9 +52,9 @@ export async function genLLMResponse(
             model: model,
             temperature: TEMPERATURE,
         });
-
         return completion;
-    } catch (e) {
-        throw new Error(`(Gen LLM Response) LLM Host Error ${e}`);
+    } catch (error) {
+        console.error("LLM API error:", error);
+        throw llmServiceError("Failed to generate LLM response");
     }
 }

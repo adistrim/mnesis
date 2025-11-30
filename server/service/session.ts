@@ -1,6 +1,6 @@
 import { saveSession } from "@/db/repository/session";
 import { genLLMResponse } from "@/lib/openai/openai";
-import { LLMRequestType } from "@/lib/openai/openai.types";
+import { LLMRequestType } from "@/lib/openai/openai.type";
 import { genTitle } from "@/prompts";
 import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 
@@ -12,6 +12,10 @@ export async function createSession(userPrompt: string): Promise<string> {
     };
 
     const response = await genLLMResponse(config);
+
+    if (!isValidLLMResponse(response)) {
+        console.warn("LLM failed to generate title, using fallback");
+    }
 
     const title = isValidLLMResponse(response)
         ? response.choices[0].message.content.trim()

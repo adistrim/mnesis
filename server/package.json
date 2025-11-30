@@ -23,6 +23,7 @@
   "dependencies": {
     "drizzle-orm": "^0.44.7",
     "openai": "^6.9.1",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "zod": "^4.1.13"
   }
 }

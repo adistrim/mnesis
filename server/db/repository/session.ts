@@ -1,16 +1,21 @@
+import { AppError, databaseError } from "@/lib/errors";
 import { db } from "../client";
 import { sessions } from "../schema";
 
 export async function saveSession(title: string) {
-    const [session] = await db
-        .insert(sessions)
-        .values({ title })
-        .returning({ id: sessions.id });
+    try {
+        const [session] = await db
+            .insert(sessions)
+            .values({ title })
+            .returning({ id: sessions.id });
 
-    if (!session) {
-        throw new Error(
-            `(Save Session) Database Insert error - ${sessions} table`,
-        );
+        if (!session) {
+            throw databaseError("Failed to create session");
+        }
+        return session.id;
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        console.error("Database error in saveSession:", error);
+        throw databaseError("Failed to create session");
     }
-    return session.id;
 }
