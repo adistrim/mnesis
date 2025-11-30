@@ -9,17 +9,22 @@ import {
     type AiMessageReasoningInsert,
     type UserMessageInsert,
 } from "@/db/schema";
+import { AppError, databaseError } from "@/lib/errors";
 
 export async function ensureSession(sessionId: string): Promise<boolean> {
-    if (sessionId) {
-        const existing = await db
-            .select({ id: sessions.id })
-            .from(sessions)
-            .where(eq(sessions.id, sessionId));
-        if (existing.length > 0) return true;
+    try {
+        if (sessionId) {
+            const existing = await db
+                .select({ id: sessions.id })
+                .from(sessions)
+                .where(eq(sessions.id, sessionId));
+            return existing.length > 0;
+        }
+        return false;
+    } catch (error) {
+        console.error("Database error in ensureSession:", error);
+        throw databaseError("Failed to verify session");
     }
-
-    return false;
 }
 
 /**
@@ -30,22 +35,27 @@ export async function saveUserMessage(params: {
     content: string;
     tokens: number;
 }) {
-    const insert: UserMessageInsert = {
-        sessionId: params.sessionId,
-        content: params.content,
-        tokens: params.tokens,
-    };
-    const [row] = await db
-        .insert(userMessages)
-        .values(insert)
-        .returning({ id: userMessages.id });
+    try {
+        const insert: UserMessageInsert = {
+            sessionId: params.sessionId,
+            content: params.content,
+            tokens: params.tokens,
+        };
+        const [row] = await db
+            .insert(userMessages)
+            .values(insert)
+            .returning({ id: userMessages.id });
 
-    if (!row) {
-        throw new Error(
-            `(Save User Message) Database Insert error - ${userMessages} table`,
-        );
+        if (!row) {
+            throw databaseError("Failed to insert user message");
+        }
+
+        return row.id;
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        console.error("Database error in saveUserMessage:", error);
+        throw databaseError("Failed to save user message");
     }
-    return row.id;
 }
 
 /**
@@ -60,53 +70,55 @@ export async function saveAIMessageWithReasoning(params: {
     reasoningTokens?: number;
     reasoningContent?: string | null;
 }) {
-    const reasoningPresent =
-        params.reasoningTokens &&
-        params.reasoningTokens > 0 &&
-        params.reasoningContent &&
-        params.reasoningContent.length > 0;
+    try {
+        const reasoningPresent =
+            params.reasoningTokens &&
+            params.reasoningTokens > 0 &&
+            params.reasoningContent &&
+            params.reasoningContent.length > 0;
 
-    const aiInsert: AiMessageInsert = {
-        sessionId: params.sessionId,
-        model: params.model,
-        tokens: params.responseTokens,
-        reasoning: Boolean(reasoningPresent),
-        content: params.content,
-    };
-
-    const [aiRow] = await db
-        .insert(aiMessages)
-        .values(aiInsert)
-        .returning({ id: aiMessages.id });
-
-    if (!aiRow) {
-        throw new Error(
-            `(Save AI Message with Reasoning) Database Insert error - ${aiMessages} table`,
-        );
-    }
-
-    let reasoningId: number | undefined;
-
-    if (reasoningPresent) {
-        const reasoningInsert: AiMessageReasoningInsert = {
-            messageId: aiRow.id,
-            tokens: params.reasoningTokens!,
-            content: params.reasoningContent!,
+        const aiInsert: AiMessageInsert = {
+            sessionId: params.sessionId,
+            model: params.model,
+            tokens: params.responseTokens,
+            reasoning: Boolean(reasoningPresent),
+            content: params.content,
         };
-        const [rRow] = await db
-            .insert(aiMessageReasoning)
-            .values(reasoningInsert)
-            .returning({ id: aiMessageReasoning.id });
 
-        if (!rRow) {
-            throw new Error(
-                `(Save AI Message with Reasoning) Database Insert error - ${aiMessageReasoning} table`,
-            );
+        const [aiRow] = await db
+            .insert(aiMessages)
+            .values(aiInsert)
+            .returning({ id: aiMessages.id });
+
+        if (!aiRow) {
+            throw databaseError("Failed to insert AI message");
         }
-        reasoningId = rRow.id;
-    }
 
-    return { aiMessageId: aiRow.id, reasoningId };
+        let reasoningId: number | undefined;
+        if (reasoningPresent) {
+            const reasoningInsert: AiMessageReasoningInsert = {
+                messageId: aiRow.id,
+                tokens: params.reasoningTokens!,
+                content: params.reasoningContent!,
+            };
+
+            const [rRow] = await db
+                .insert(aiMessageReasoning)
+                .values(reasoningInsert)
+                .returning({ id: aiMessageReasoning.id });
+
+            if (!rRow) {
+                throw databaseError("Failed to insert AI reasoning");
+            }
+            reasoningId = rRow.id;
+        }
+
+        return { aiMessageId: aiRow.id, reasoningId };
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        console.error("Database error in saveAIMessageWithReasoning:", error);
+        throw databaseError("Failed to save AI message");
+    }
 }
 
 /**
