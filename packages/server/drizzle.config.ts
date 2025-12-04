@@ -1,5 +1,5 @@
 import type { Config } from 'drizzle-kit';
-import { settings } from './config/settings';
+import { settings } from './src/config/settings';
 
 export default {
   schema: './db/schema/',
