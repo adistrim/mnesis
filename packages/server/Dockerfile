@@ -9,10 +9,6 @@ COPY . .
 # build single file executable
 RUN bun build ./src/index.ts --compile --outfile server
 
-RUN ls -R .
-RUN file server || true
-RUN ldd server || true
-
 FROM gcr.io/distroless/base-debian12 AS release
 WORKDIR /app
 
