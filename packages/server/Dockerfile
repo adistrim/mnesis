@@ -1,22 +1,20 @@
 FROM oven/bun:slim AS base
 WORKDIR /usr/src/app
 
-# Install dependencies in a build environment
 FROM base AS build
-COPY package.json bun.lock ./
+COPY package.json ./
 RUN bun install --frozen-lockfile
 
-# Copy project files and build bundle
 COPY . .
-RUN bun build index.ts --bundle --target=bun --outdir=dist --minify
+# build single file executable
+RUN bun build ./src/index.ts --compile --outfile server
 
-# Final lightweight image with NO node_modules
-FROM oven/bun:slim AS release
-WORKDIR /usr/src/app
+RUN ls -R .
+RUN file server || true
+RUN ldd server || true
 
-# Copy only the bundled output
-COPY --from=build /usr/src/app/dist/index.js ./index.js
+FROM gcr.io/distroless/base-debian12 AS release
+WORKDIR /app
 
-USER bun
-EXPOSE 3000
-ENTRYPOINT [ "bun", "run", "index.js" ]
+COPY --from=build /usr/src/app/server /app/server
+ENTRYPOINT ["/app/server"]

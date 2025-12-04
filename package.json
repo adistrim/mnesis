@@ -7,6 +7,10 @@
     "scripts": {
         "dev": "bun run --workspaces dev",
         "build": "bun run --workspaces build",
-        "prod": "bun run --workspaces prod"
+        "prod": "bun run --workspaces prod",
+        "docker:build": "docker-compose build",
+        "docker:run": "docker-compose up",
+        "docker:down": "docker-compose down",
+        "docker:run:d": "docker-compose up -d"
     }
 }

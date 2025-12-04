@@ -1,0 +1,11 @@
+services:
+    server:
+        build:
+            context: ./packages/server
+            dockerfile: Dockerfile
+        image: mnesis-server:latest
+        env_file:
+            - ./packages/server/.env
+        ports:
+            - "3000:3000"
+        restart: unless-stopped

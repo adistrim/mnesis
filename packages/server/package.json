@@ -1,17 +1,13 @@
 {
   "name": "server",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir=dist --minify --target=bun",
     "prod": "bun run ./dist/index.js",
     "generate": "drizzle-kit generate",
-    "push": "drizzle-kit push",
-    "docker:build": "docker-compose build",
-    "docker:run": "docker-compose up",
-    "docker:down": "docker-compose down",
-    "docker:run:detached": "docker-compose up -d"
+    "push": "drizzle-kit push"
   },
   "devDependencies": {
     "@types/bun": "latest",
