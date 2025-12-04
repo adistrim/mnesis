@@ -1,4 +1,6 @@
-# server
+# mnesis
+
+__TODO: UPDATE DOCS__
 
 To install dependencies:
 
