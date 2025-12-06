@@ -30,7 +30,7 @@ const openai = new OpenAI({
 export async function genLLMResponse(
     params: GenLLMResponseParams,
 ): Promise<ChatCompletion> {
-    const { type, sysPrompt, userPrompt } = params;
+    const { type, sysPrompt, userPrompt, sessionContext } = params;
 
     let model;
     if (type === LLMRequestType.Chat) {
@@ -43,13 +43,16 @@ export async function genLLMResponse(
         );
     }
 
+    const messages = [
+        { role: ROLE.SYSTEM, content: sysPrompt.content },
+        ...(sessionContext ?? []),
+        { role: ROLE.USER, content: userPrompt },
+    ];
+
     try {
         const completion = await openai.chat.completions.create({
-            messages: [
-                { role: ROLE.SYSTEM, content: sysPrompt.content },
-                { role: ROLE.USER, content: userPrompt },
-            ],
-            model: model,
+            messages,
+            model,
             temperature: TEMPERATURE,
         });
         return completion;
