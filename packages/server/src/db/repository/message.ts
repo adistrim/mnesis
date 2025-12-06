@@ -9,7 +9,7 @@ import {
     type AiMessageReasoningInsert,
     type UserMessageInsert,
 } from "@/db/schema";
-import { AppError, databaseError } from "@/lib/errors";
+import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
 
 export async function ensureSession(sessionId: string): Promise<boolean> {
     try {
@@ -22,8 +22,8 @@ export async function ensureSession(sessionId: string): Promise<boolean> {
         }
         return false;
     } catch (error) {
-        console.error("Database error in ensureSession:", error);
-        throw databaseError("Failed to verify session");
+        if (error instanceof AppError) throw error;
+        throw sessionNotFoundError(sessionId);
     }
 }
 
