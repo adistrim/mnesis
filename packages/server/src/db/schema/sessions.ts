@@ -11,9 +11,9 @@ CREATE TABLE sessions (
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const sessions = pgTable("sessions", {
-    id: uuid("id").primaryKey().defaultRandom(),
-    title: text("title"),
-    createdAt: timestamp("created_at").defaultNow(),
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    title: text("title").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type SessionInsert = typeof sessions.$inferInsert;

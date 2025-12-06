@@ -1,4 +1,5 @@
 import type { promptType } from "@/prompts/prompt.type";
+import type { ChatCompletionMessageParam } from "openai/resources";
 
 export enum LLMRequestType {
     Chat = "chat",
@@ -20,6 +21,7 @@ export interface GenLLMResponseParams {
     type: LLMRequestType;
     sysPrompt: promptType;
     userPrompt: string;
+    sessionContext?: Array<ChatCompletionMessageParam>;
 }
 
 export type CustomResponseType = {

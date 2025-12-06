@@ -9,7 +9,7 @@ import {
 import { sessions } from "./sessions";
 
 export const aiMessages = pgTable("ai_messages", {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity().notNull(),
     sessionId: uuid("session_id")
         .references(() => sessions.id)
         .notNull(),
@@ -17,7 +17,7 @@ export const aiMessages = pgTable("ai_messages", {
     tokens: integer("tokens").notNull(),
     reasoning: boolean("reasoning").notNull(),
     content: text("content").notNull(),
-    createdAt: timestamp("created_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type AiMessageInsert = typeof aiMessages.$inferInsert;

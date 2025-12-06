@@ -11,6 +11,7 @@ import {
     invalidLLMResponseError,
     sessionNotFoundError,
 } from "@/lib/errors";
+import { buildSessionContext } from "./session";
 
 export async function getResponse(
     sessionId: string,
@@ -23,11 +24,15 @@ export async function getResponse(
         throw sessionNotFoundError(sessionId);
     }
 
+    // generate session context (if any)
+    const sessionContext = await buildSessionContext(sessionId);
+
     // generate LLM response
     const completion = await genLLMResponse({
         type: requestType,
-        sysPrompt: sysPrompt,
+        sysPrompt,
         userPrompt,
+        sessionContext,
     });
 
     // validate LLM response

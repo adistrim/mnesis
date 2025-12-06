@@ -13,8 +13,8 @@ import { pgTable } from "drizzle-orm/pg-core/table";
 import { documentChunks } from "./document_chunks";
 
 export const documentChunkEmbeddings = pgTable("document_chunk_embeddings", {
-    chunkId: integer("chunk_id").references(() => documentChunks.id).primaryKey(),
-    embedding: vector("embedding", { dimensions: 1024 }),
+    chunkId: integer("chunk_id").references(() => documentChunks.id).primaryKey().notNull(),
+    embedding: vector("embedding", { dimensions: 1024 }).notNull(),
 });
 
 export type DocumentChunkEmbeddingsInsert = typeof documentChunkEmbeddings.$inferInsert;
