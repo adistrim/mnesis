@@ -1,6 +1,6 @@
-import { saveSession } from "@/db/repository/session";
+import { getSessionPreview, saveSession } from "@/db/repository/session";
 import { genLLMResponse } from "@/lib/openai/openai";
-import { LLMRequestType } from "@/lib/openai/openai.type";
+import { LLMRequestType, ROLE } from "@/lib/openai/openai.type";
 import { genTitle } from "@/prompts";
 import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 
@@ -23,4 +23,28 @@ export async function createSession(userPrompt: string): Promise<string> {
 
     const sessionId = await saveSession(title);
     return sessionId;
+}
+
+export async function buildSessionContext(sessionId: string) {
+    const preview = await getSessionPreview(sessionId);
+    if (!preview || preview.length === 0) return [];
+
+    const messages = [];
+
+    for (const ex of preview) {
+        const userContent = ex.user?.content ?? "";
+        messages.push({
+            role: ROLE.USER,
+            content: userContent
+        });
+
+        if (ex.ai?.content) {
+            messages.push({
+                role: ROLE.ASSISTANT,
+                content: ex.ai.content
+            });
+        }
+    }
+
+    return messages;
 }
