@@ -13,7 +13,7 @@ import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { documents } from "./documents";
 
 export const documentChunks = pgTable("document_chunks", {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity().notNull(),
     documentId: integer("document_id")
         .references(() => documents.id)
         .notNull(),
