@@ -1,7 +1,6 @@
 import { requireMethod } from "@/middleware/methodChecker";
 import { withPrefix } from "./utils";
-import { chatRoutes } from "./v1/chat/chat";
-import { messageRoutes } from "./v1/message";
+import { chatRoutes, messageRoutes, sessionRoutes } from "./v1";
 
 function rootRoute() {
     return new Response("Welcome to the API v1", {
@@ -13,4 +12,5 @@ export const v1Routes = withPrefix("/api/v1", {
     "/": requireMethod("GET", rootRoute),
     ...chatRoutes,
     ...messageRoutes,
+    ...sessionRoutes,
 });
