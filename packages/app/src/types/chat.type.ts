@@ -4,6 +4,20 @@ export type Message = {
   content: string;
 };
 
+export interface Session {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
+export type SessionListResponse = Session[];
+
+export const ROLE = {
+    SYSTEM: "system",
+    USER: "user",
+    ASSISTANT: "assistant",
+} as const;
+
 export type LLMRequestType = 'chat' | 'reasoning';
 
 export type ChatState = {
@@ -20,6 +34,7 @@ export type ChatActions = {
   setType: (type: LLMRequestType) => void;
   newSession: () => void;
   submit: () => Promise<void>;
+  loadSession: (sessionId: string) => Promise<void>;
 };
 
 export type ChatContextValue = ChatState & ChatActions;

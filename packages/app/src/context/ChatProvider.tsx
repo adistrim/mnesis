@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ChatContext } from './ChatContext';
-import type { ChatContextValue, Message, LLMRequestType } from '@/types/chat';
-import { API_URL } from '@/config';
+import type { ChatContextValue, Message, LLMRequestType } from '@/types/chat.type';
+import { settings } from '@/config';
+import { ROLE } from '@/types/chat.type';
 
 export default function ChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -15,7 +16,41 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
     setMessages([]);
     setSessionId(undefined);
     setError(null);
-    // Focusing the textarea is handled by the consumer via its own ref
+  };
+
+  const loadSession = async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${settings.API_URL}/session/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: id }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to load session');
+      }
+
+
+      const data: { role: typeof ROLE.USER | typeof ROLE.ASSISTANT; content: string }[] =
+        await res.json();
+
+      const mapped: Message[] = data.map((m, idx) => ({
+        id: `${id}-${idx}`,
+        role: m.role,
+        content: m.content,
+      }));
+
+      setMessages(mapped);
+      setSessionId(id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error loading session';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const submit = async () => {
@@ -23,7 +58,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
+      role: ROLE.USER,
       content: input.trim(),
     };
 
@@ -33,7 +68,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/chat`, {
+      const response = await fetch(`${settings.API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -62,8 +97,8 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
         setSessionId(data.response.sessionId);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
+      const msg = err instanceof Error ? err.message : 'An error occurred';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +115,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
     setType,
     newSession,
     submit,
+    loadSession,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
