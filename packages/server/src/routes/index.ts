@@ -1,16 +1,10 @@
-import { requireMethod } from "@/middleware/methodChecker";
-import { withPrefix } from "./utils";
-import { chatRoutes, messageRoutes, sessionRoutes } from "./v1";
+import { chatRoute, messageRoute, sessionRoute } from "./v1";
+import { Hono } from "hono";
 
-function rootRoute() {
-    return new Response("Welcome to the API v1", {
-        headers: { "Content-Type": "text/plain" },
-    });
-}
+export const v1Routes = new Hono();
 
-export const v1Routes = withPrefix("/api/v1", {
-    "/": requireMethod("GET", rootRoute),
-    ...chatRoutes,
-    ...messageRoutes,
-    ...sessionRoutes,
-});
+v1Routes.get('/', ctx => ctx.text('Welcome to the Mnesis API v1'))
+
+v1Routes.route('/chat', chatRoute);
+v1Routes.route('/message', messageRoute);
+v1Routes.route('/session', sessionRoute);

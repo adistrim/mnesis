@@ -1,26 +1,18 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/db/client";
-import {
-    aiMessageReasoning,
-    aiMessages,
-    sessions,
-    userMessages,
-    type AiMessageInsert,
-    type AiMessageReasoningInsert,
-    type UserMessageInsert,
-} from "@/db/schema";
+import db_client from "@/db/client";
 import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
 
 export async function ensureSession(sessionId: string): Promise<boolean> {
     try {
-        if (sessionId) {
-            const existing = await db
-                .select({ id: sessions.id })
-                .from(sessions)
-                .where(eq(sessions.id, sessionId));
-            return existing.length > 0;
-        }
-        return false;
+        if (!sessionId) return false;
+
+        const rows = await db_client`
+            SELECT id
+            FROM sessions
+            WHERE id = ${sessionId}
+            LIMIT 1
+        `;
+
+        return rows.length > 0;
     } catch (error) {
         if (error instanceof AppError) throw error;
         throw sessionNotFoundError(sessionId);
@@ -36,15 +28,15 @@ export async function saveUserMessage(params: {
     tokens: number;
 }) {
     try {
-        const insert: UserMessageInsert = {
-            sessionId: params.sessionId,
-            content: params.content,
-            tokens: params.tokens,
-        };
-        const [row] = await db
-            .insert(userMessages)
-            .values(insert)
-            .returning({ id: userMessages.id });
+        const { sessionId, content, tokens } = params;
+
+        const rows = await db_client`
+            INSERT INTO user_messages (session_id, content, tokens)
+            VALUES (${sessionId}, ${content}, ${tokens})
+            RETURNING id
+        `;
+
+        const row = rows[0];
 
         if (!row) {
             throw databaseError("Failed to insert user message");
@@ -77,35 +69,38 @@ export async function saveAIMessageWithReasoning(params: {
             params.reasoningContent &&
             params.reasoningContent.length > 0;
 
-        const aiInsert: AiMessageInsert = {
-            sessionId: params.sessionId,
-            model: params.model,
-            tokens: params.responseTokens,
-            reasoning: Boolean(reasoningPresent),
-            content: params.content,
-        };
+        const rows = await db_client`
+            INSERT INTO ai_messages (session_id, model, tokens, reasoning, content)
+            VALUES (
+                ${params.sessionId},
+                ${params.model},
+                ${params.responseTokens},
+                ${Boolean(reasoningPresent)},
+                ${params.content}
+            )
+            RETURNING id
+        `;
 
-        const [aiRow] = await db
-            .insert(aiMessages)
-            .values(aiInsert)
-            .returning({ id: aiMessages.id });
+        const aiRow = rows[0];
 
         if (!aiRow) {
             throw databaseError("Failed to insert AI message");
         }
 
-        let reasoningId: number | undefined;
-        if (reasoningPresent) {
-            const reasoningInsert: AiMessageReasoningInsert = {
-                messageId: aiRow.id,
-                tokens: params.reasoningTokens!,
-                content: params.reasoningContent!,
-            };
+        let reasoningId;
 
-            const [rRow] = await db
-                .insert(aiMessageReasoning)
-                .values(reasoningInsert)
-                .returning({ id: aiMessageReasoning.id });
+        if (reasoningPresent) {
+            const rRows = await db_client`
+                INSERT INTO ai_message_reasonings (message_id, tokens, content)
+                VALUES (
+                    ${aiRow.id},
+                    ${params.reasoningTokens},
+                    ${params.reasoningContent}
+                )
+                RETURNING id
+            `;
+
+            const rRow = rRows[0];
 
             if (!rRow) {
                 throw databaseError("Failed to insert AI reasoning");

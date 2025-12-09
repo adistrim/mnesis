@@ -1,18 +1,19 @@
 import { getResponse } from "@/service/chat";
-import { withPrefix } from "@/routes/utils";
-import { requireMethod } from "@/middleware/methodChecker";
 import { LLMRequestType } from "@/lib/openai/openai.type";
 import { createSession } from "@/service/session";
 import { invalidJsonError, validationError } from "@/lib/errors";
 import { errorResponse } from "@/utils/errorResponse";
 import { chatRequestDto } from "./chat.dto";
+import { Hono } from "hono";
 
-async function chat(request: Request) {
+export const chatRoute = new Hono();
+
+chatRoute.post("/", async ctx => {
     try {
         let body: unknown;
 
         try {
-            body = await request.json();
+            body = await ctx.req.json();
         } catch {
             throw invalidJsonError();
         }
@@ -37,8 +38,4 @@ async function chat(request: Request) {
     } catch (error) {
         return errorResponse(error);
     }
-}
-
-export const chatRoutes = withPrefix("/chat", {
-    "/": requireMethod("POST", chat),
 });

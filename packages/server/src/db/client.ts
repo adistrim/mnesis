@@ -1,11 +1,6 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
 import { settings } from "@/config/settings";
+import { SQL } from "bun";
 
-const client = postgres(settings.DB_URL, {
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10
-});
+const db_client = new SQL(settings.DB_URL);
 
-export const db = drizzle(client);
+export default db_client;

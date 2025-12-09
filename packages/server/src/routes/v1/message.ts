@@ -1,29 +1,36 @@
-import { db } from "@/db/client";
-import { aiMessages } from "@/db/schema";
-import { withPrefix } from "../utils";
-import { requireMethod } from "@/middleware/methodChecker";
+import db_client from "@/db/client";
+import { Hono } from "hono";
 
-async function getMessages() {
-    const messageData = await db.select().from(aiMessages).limit(10);
+export const messageRoute = new Hono();
 
-    return new Response(
-        JSON.stringify(
-            messageData.map((msg) => ({
-                id: msg.id,
-                sessionId: msg.sessionId,
-                model: msg.model,
-                tokens: msg.tokens,
-                reasoning: msg.reasoning,
-                content: msg.content,
-                createdAt: msg.createdAt,
-            })),
-        ),
-        {
-            headers: { "Content-Type": "application/json" },
-        },
-    );
-}
+type AiMessageRow = {
+    id: number;
+    session_id: string;
+    model: string;
+    tokens: number;
+    reasoning: boolean;
+    content: string;
+    created_at: string;
+};
 
-export const messageRoutes = withPrefix("/message", {
-    "/": requireMethod("GET", getMessages),
+messageRoute.get("/", async () => {
+    const rows = await db_client`
+        SELECT id, session_id, model, tokens, reasoning, content, created_at
+        FROM ai_messages
+        LIMIT 10
+    `;
+
+    const messageData = (rows as AiMessageRow[]).map((r: AiMessageRow) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        model: r.model,
+        tokens: r.tokens,
+        reasoning: r.reasoning,
+        content: r.content,
+        createdAt: r.created_at
+    }));
+
+    return new Response(JSON.stringify(messageData), {
+        headers: { "Content-Type": "application/json" }
+    });
 });
