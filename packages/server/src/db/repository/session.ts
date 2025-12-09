@@ -1,16 +1,15 @@
 import { AppError, databaseError } from "@/lib/errors";
-import { db } from "../client";
-import { aiMessages, sessions, userMessages } from "../schema";
-import { eq, sql, desc } from "drizzle-orm";
+import db_client from "../client";
 import { ROLE } from "@/lib/openai/openai.type";
 
 export async function saveSession(title: string) {
     try {
-        const [session] = await db
-            .insert(sessions)
-            .values({ title })
-            .returning({ id: sessions.id });
-
+        const rows = await db_client`
+            INSERT INTO sessions (title)
+            VALUES (${title})
+            RETURNING id
+        `;
+        const session = rows[0];
         if (!session) {
             throw databaseError("Failed to create session");
         }
@@ -37,26 +36,20 @@ type Exchange = {
 };
 export async function getSessionPreview(sessionId: string) {
     try {
-        const rows = await db
-            .select({
-                id: userMessages.id,
-                content: userMessages.content,
-                createdAt: userMessages.createdAt,
-                role: sql`${ROLE.USER}`.as("role")
-            })
-            .from(userMessages)
-            .where(eq(userMessages.sessionId, sessionId))
-            .unionAll(
-                db.select({
-                    id: aiMessages.id,
-                    content: aiMessages.content,
-                    createdAt: aiMessages.createdAt,
-                    role: sql`${ROLE.ASSISTANT}`.as("role")
-                })
-                .from(aiMessages)
-                .where(eq(aiMessages.sessionId, sessionId))
+        const rows = await db_client`
+            (
+                SELECT id, content, created_at, '${ROLE.USER}' as role
+                FROM user_messages
+                WHERE session_id = ${sessionId}
             )
-            .orderBy(sql`created_at`);
+            UNION ALL
+            (
+                SELECT id, content, created_at, '${ROLE.ASSISTANT}' as role
+                FROM ai_messages
+                WHERE session_id = ${sessionId}
+            )
+            ORDER BY created_at
+        `;
 
         const exchanges: Exchange[] = [];
         let last: Exchange | null = null;
@@ -82,14 +75,11 @@ export async function getSessionPreview(sessionId: string) {
 
 export async function getAllSessionDetails() {
     try {
-        const rows = await db
-            .select({
-                id: sessions.id,
-                title: sessions.title,
-                createdAt: sessions.createdAt,
-            })
-            .from(sessions)
-            .orderBy(desc(sessions.createdAt));
+        const rows = await db_client`
+            SELECT id, title, created_at
+            FROM sessions
+            ORDER BY created_at DESC
+        `;
 
         return rows;
     } catch (error) {
