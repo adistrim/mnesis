@@ -1,6 +1,7 @@
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Props {
   input: string;
@@ -28,22 +29,31 @@ export function ChatInput({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Type your message..."
-            className="min-h-[60px] max-h-[200px] resize-none"
+            className="max-h-[200px] resize-none"
             disabled={isLoading}
             ref={textareaRef}
           />
-          <Button
-            onClick={submit}
-            size="icon"
-            disabled={!input.trim() || isLoading}
-            className="h-[60px] w-[60px]"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </Button>
+          <div className='flex flex-col justify-end'>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={submit}
+                  size="lg"
+                  disabled={!input.trim() || isLoading}
+                  aria-label="Send Message"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                  Send Message
+                </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           Press Enter to send, Shift+Enter for new line

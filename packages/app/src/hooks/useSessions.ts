@@ -32,10 +32,34 @@ export function useSessions() {
     fetchSessions();
   }, []);
 
+  const deleteSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`${settings.API_URL}/session`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session');
+      }
+
+      // Refetch sessions after deletion
+      await fetchSessions();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      throw err;
+    }
+  };
+
   return {
     sessions,
     isLoading,
     error,
     refetch: fetchSessions,
+    deleteSession,
   };
 }

@@ -1,4 +1,4 @@
-import { AppError, databaseError } from "@/lib/errors";
+import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
 import db_client from "../client";
 import { ROLE } from "@/lib/openai/openai.type";
 
@@ -21,6 +21,24 @@ export async function saveSession(title: string) {
     }
 }
 
+export async function deleteSession(sessionId: string) {
+    try {
+        const result = await db_client`
+            DELETE FROM sessions
+            WHERE id = ${sessionId}
+            RETURNING id
+        `;
+
+        if (result.length === 0) {
+            throw sessionNotFoundError(sessionId);
+        }
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        console.error("Database error in deleteSession:", error);
+        throw databaseError("Failed to delete session");
+    }
+}
+
 /**
  * Get a preview of recent exchanges for a session.
  *
@@ -38,15 +56,15 @@ export async function getSessionPreview(sessionId: string) {
     try {
         const rows = await db_client`
             (
-                SELECT id, content, created_at, '${ROLE.USER}' as role
+                SELECT id, content, created_at, ${ROLE.USER} as role
                 FROM user_messages
-                WHERE session_id = ${sessionId}
+                WHERE session_id = ${sessionId}::uuid
             )
             UNION ALL
             (
-                SELECT id, content, created_at, '${ROLE.ASSISTANT}' as role
+                SELECT id, content, created_at, ${ROLE.ASSISTANT} as role
                 FROM ai_messages
-                WHERE session_id = ${sessionId}
+                WHERE session_id = ${sessionId}::uuid
             )
             ORDER BY created_at
         `;
