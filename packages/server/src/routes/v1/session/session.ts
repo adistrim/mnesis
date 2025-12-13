@@ -1,4 +1,4 @@
-import { getAllSessionDetails } from "@/db/repository/session";
+import { deleteSession, getAllSessionDetails } from "@/db/repository/session";
 import { errorResponse } from "@/utils/errorResponse";
 import { invalidJsonError, sessionNotFoundError, validationError } from "@/lib/errors";
 import { sessionRequestDto } from "./session.dto";
@@ -19,6 +19,34 @@ sessionRoute.get("/", async () => {
         return errorResponse(error);
     }
 });
+
+sessionRoute.delete("/", async ctx => {
+    try {
+        let body: unknown;
+
+        try {
+            body = await ctx.req.json();
+        } catch {
+            throw invalidJsonError();
+        }
+
+        const parsed = sessionRequestDto.safeParse(body);
+
+        if (!parsed.success) {
+            throw validationError("Invalid request body", {
+                error: parsed.error.issues,
+            });
+        }
+
+        const sessionId = parsed.data.sessionId;
+
+        await deleteSession(sessionId);
+
+        return ctx.json({ success: true }, 200);
+    } catch (error) {
+        return errorResponse(error);
+    }
+})
 
 sessionRoute.post("/messages", async ctx => {
     try {
@@ -44,6 +72,8 @@ sessionRoute.post("/messages", async ctx => {
         if (!sessionExists) {
             throw sessionNotFoundError(sessionId);
         }
+
+        console.log("Session Exists and here is the sessionId: ", sessionId);
 
         const messages = await buildSessionContext(sessionId);
 

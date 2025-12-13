@@ -1,47 +1,33 @@
-import { Button } from '@/components/ui/button';
 import type { LLMRequestType } from '@/types/chat.type';
-import { Plus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface Props {
   type: LLMRequestType;
   isLoading: boolean;
   setType: (t: LLMRequestType) => void;
-  newSession: () => void;
 }
 
-export function Header({ type, isLoading, setType, newSession }: Props) {
+export function Header({ type, isLoading, setType }: Props) {
   return (
-    <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+    <div className="bg-inherit px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <div className="flex gap-2">
-          <Button
-            variant={type === 'chat' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setType('chat')}
+        <div>
+          <label htmlFor="type-select" className="sr-only">Select Mode</label>
+          <Select
+            value={type}
+            onValueChange={(v: LLMRequestType) => setType(v)}
             disabled={isLoading}
           >
-            Chat
-          </Button>
-          <Button
-            variant={type === 'reasoning' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setType('reasoning')}
-            disabled={isLoading}
-          >
-            Reasoning
-          </Button>
+            <SelectTrigger id="type-select" className="w-36">
+              <SelectValue placeholder="Select Mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="chat">Chat</SelectItem>
+              <SelectItem value="reasoning">Reasoning</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={newSession}
-        disabled={isLoading}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        New Session
-      </Button>
     </div>
   );
 }

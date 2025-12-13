@@ -44,14 +44,17 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar currentSessionId={sessionId} onSelect={loadSession} />
+      <Sidebar 
+        currentSessionId={sessionId} 
+        onSelect={loadSession} 
+        newSession={newSession}
+      />
 
       <div className="flex flex-col flex-1 h-full overflow-hidden min-h-0">
         <Header
           type={type}
           isLoading={isLoading}
           setType={setType}
-          newSession={newSession}
         />
 
         <MessageList

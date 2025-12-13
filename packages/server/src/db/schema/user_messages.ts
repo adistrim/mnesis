@@ -4,8 +4,8 @@ import { sessions } from "./sessions";
 export const userMessages = pgTable("user_messages", {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity().notNull(),
     sessionId: uuid("session_id")
-        .references(() => sessions.id)
-        .notNull(),
+        .notNull()
+        .references(() => sessions.id, { onDelete: "cascade" }),
     tokens: integer("tokens").notNull(),
     content: text("content").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -11,8 +11,8 @@ import { sessions } from "./sessions";
 export const aiMessages = pgTable("ai_messages", {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity().notNull(),
     sessionId: uuid("session_id")
-        .references(() => sessions.id)
-        .notNull(),
+        .notNull()
+        .references(() => sessions.id, { onDelete: "cascade" }),
     model: text("model").notNull(),
     tokens: integer("tokens").notNull(),
     reasoning: boolean("reasoning").notNull(),

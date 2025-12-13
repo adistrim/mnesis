@@ -1,8 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatContext } from './ChatContext';
 import type { ChatContextValue, Message, LLMRequestType } from '@/types/chat.type';
 import { settings } from '@/config';
 import { ROLE } from '@/types/chat.type';
+
+const getSessionIdFromUrl = (): string | null => {
+  const pathname = window.location.pathname;
+  const sessionId = pathname.slice(1);
+  return sessionId || null;
+};
+
+// Helper function to update URL with session ID
+const updateUrlWithSessionId = (sessionId: string | undefined) => {
+  const url = new URL(window.location.href);
+  if (sessionId) {
+    url.pathname = `/${sessionId}`;
+  } else {
+    url.pathname = '/';
+  }
+  // Clear any query parameters
+  url.search = '';
+  window.history.replaceState({}, '', url.toString());
+};
 
 export default function ChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -11,14 +30,10 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
   const [type, setType] = useState<LLMRequestType>('chat');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isInitializedRef = useRef(false);
+  const refetchSessionsRef = useRef<(() => void) | null>(null);
 
-  const newSession = () => {
-    setMessages([]);
-    setSessionId(undefined);
-    setError(null);
-  };
-
-  const loadSession = async (id: string) => {
+  const loadSession = useCallback(async (id: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -45,12 +60,38 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
 
       setMessages(mapped);
       setSessionId(id);
+      updateUrlWithSessionId(id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error loading session';
       setError(msg);
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // Load session from URL on mount
+  useEffect(() => {
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
+    
+    const urlSessionId = getSessionIdFromUrl();
+    if (urlSessionId) {
+      loadSession(urlSessionId);
+    }
+  }, [loadSession]);
+
+  // Sync URL when sessionId changes (after initialization)
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      updateUrlWithSessionId(sessionId);
+    }
+  }, [sessionId]);
+
+  const newSession = () => {
+    setMessages([]);
+    setSessionId(undefined);
+    setError(null);
+    updateUrlWithSessionId(undefined);
   };
 
   const submit = async () => {
@@ -94,7 +135,14 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
       setMessages(prev => [...prev, assistantMessage]);
 
       if (data.response.sessionId) {
+        const previousSessionId = sessionId;
         setSessionId(data.response.sessionId);
+        updateUrlWithSessionId(data.response.sessionId);
+        
+        // If this is a new session (was undefined before), refetch the sidebar
+        if (!previousSessionId && data.response.sessionId) {
+          refetchSessionsRef.current?.();
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -103,6 +151,10 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
       setIsLoading(false);
     }
   };
+
+  const setRefetchSessions = useCallback((refetch: () => void) => {
+    refetchSessionsRef.current = refetch;
+  }, []);
 
   const value: ChatContextValue = {
     messages,
@@ -116,6 +168,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
     newSession,
     submit,
     loadSession,
+    setRefetchSessions,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

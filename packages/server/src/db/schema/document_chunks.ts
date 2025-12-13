@@ -15,7 +15,7 @@ import { documents } from "./documents";
 export const documentChunks = pgTable("document_chunks", {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity().notNull(),
     documentId: integer("document_id")
-        .references(() => documents.id)
+        .references(() => documents.id, { onDelete : "cascade" })
         .notNull(),
     chunkText: text("chunk_text").notNull(),
 });

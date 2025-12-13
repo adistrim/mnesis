@@ -35,6 +35,7 @@ export type ChatActions = {
   newSession: () => void;
   submit: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
+  setRefetchSessions: (refetch: () => void) => void;
 };
 
 export type ChatContextValue = ChatState & ChatActions;

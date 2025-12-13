@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { ROLE, type Message } from '@/types/chat.type';
+import Markdown from "react-markdown";
 
 interface Props {
   messages: Message[];
@@ -31,11 +32,17 @@ export function MessageList({ messages, isLoading, containerRef, endRef }: Props
             <Card
               className={`max-w-[80%] p-4 ${
                 message.role === ROLE.USER
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-secondary text-secondary-foreground'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              <p className="whitespace-pre-wrap wrap-break-words">{message.content}</p>
+              <div className="whitespace-pre-wrap wrap-break-words">
+                {message.role === ROLE.USER ? (
+                  message.content
+                ) : (
+                  <Markdown>{message.content}</Markdown>
+                )}
+              </div>
             </Card>
           </div>
         ))}
