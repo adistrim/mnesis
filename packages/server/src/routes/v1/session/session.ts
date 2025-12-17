@@ -73,8 +73,6 @@ sessionRoute.post("/messages", async ctx => {
             throw sessionNotFoundError(sessionId);
         }
 
-        console.log("Session Exists and here is the sessionId: ", sessionId);
-
         const messages = await buildSessionContext(sessionId);
 
         return new Response(JSON.stringify(messages), {
