@@ -17,3 +17,7 @@ dist
 drizzle
 drizzle.config.ts
 vercel.json
+Dockerfile
+.dockerignore
+docker-compose.yml
+mnesis
