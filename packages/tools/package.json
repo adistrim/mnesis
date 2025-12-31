@@ -1,0 +1,23 @@
+{
+  "name": "@mnesis/tools",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/main.ts",
+    "start": "bun run src/main.ts",
+    "build": "bun build src/main.ts --compile --outfile ./dist/tools",
+    "prod": "./dist/tools",
+    "init-db": "bun src/lib/logging/init-db.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "hono": "^4.11.3",
+    "quack-search": "^0.1.0"
+  }
+}
