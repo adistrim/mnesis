@@ -6,8 +6,12 @@ import {
     LLMRequestType,
     type GenLLMResponseParams,
 } from "./openai.type";
-import type { ChatCompletion } from "openai/resources";
+import type {
+    ChatCompletion,
+    ChatCompletionMessageParam,
+} from "openai/resources";
 import { llmServiceError } from "../errors";
+import { executeTools, type ToolCall } from "@/tools";
 
 /*
     source: https://api-docs.deepseek.com/quick_start/parameter_settings
@@ -21,6 +25,7 @@ import { llmServiceError } from "../errors";
 */
 
 const TEMPERATURE = 1.3;
+export const MAX_TOOL_ITERATIONS = 5;
 
 const openai = new OpenAI({
     baseURL: settings.LLM_HOST,
@@ -30,7 +35,9 @@ const openai = new OpenAI({
 export async function genLLMResponse(
     params: GenLLMResponseParams,
 ): Promise<ChatCompletion> {
-    const { type, sysPrompt, userPrompt, sessionContext } = params;
+    const { type, sysPrompt, userPrompt, sessionContext, tools } = params;
+
+    const hasTools = Array.isArray(tools) && tools.length > 0;
 
     let model;
     if (type === LLMRequestType.Chat) {
@@ -38,26 +45,53 @@ export async function genLLMResponse(
     } else if (type === LLMRequestType.Reasoning) {
         model = MODEL.REASONING;
     } else {
-        throw new Error(
-            `Invalid request type: ${type}. Expected a value from LLMRequestType.`,
-        );
+        throw new Error(`Invalid request type: ${type}`);
     }
 
-    const messages = [
+    const messages: ChatCompletionMessageParam[] = [
         { role: ROLE.SYSTEM, content: sysPrompt.content },
         ...(sessionContext ?? []),
         { role: ROLE.USER, content: userPrompt },
     ];
 
     try {
-        const completion = await openai.chat.completions.create({
-            messages,
+        let completion = await openai.chat.completions.create({
             model,
+            messages,
             temperature: TEMPERATURE,
+            ...(hasTools && { tools }),
         });
+
+        let iterations = 0;
+
+        while (
+            hasTools &&
+            completion.choices[0]?.message?.tool_calls?.length &&
+            iterations < MAX_TOOL_ITERATIONS
+        ) {
+            const toolCalls = completion.choices[0].message
+                .tool_calls as ToolCall[];
+
+            messages.push(completion.choices[0].message);
+
+            const toolResults = await executeTools(toolCalls);
+
+            for (const result of toolResults) {
+                messages.push(result);
+            }
+
+            completion = await openai.chat.completions.create({
+                model,
+                messages,
+                temperature: TEMPERATURE,
+                tools,
+            });
+
+            iterations++;
+        }
+
         return completion;
     } catch (error) {
-        console.error("LLM API error:", error);
         throw llmServiceError("Failed to generate LLM response");
     }
 }

@@ -39,5 +39,6 @@ export const settings = {
     DB_URL: requireEnvVar("DB_URL"),
     LLM_HOST_API: requireEnvVar("LLM_HOST_API"),
     LLM_HOST: requireEnvVar("LLM_HOST"),
+    MCP_TOOLS_URL: process.env.MCP_TOOLS_URL || "http://localhost:3001",
     CORS_ALLOWED_ORIGINS: getAllowedOrigins(),
 };
