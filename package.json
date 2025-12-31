@@ -8,6 +8,8 @@
         "dev": "bun run --workspaces dev",
         "build": "bun run --workspaces build",
         "prod": "bun run --workspaces prod",
+        "build-servers": "bun run --workspaces build --filter ./packages/server --filter ./packages/tools",
+        "prod-servers": "bun run --workspaces prod --filter ./packages/server --filter ./packages/tools",
         "docker:build": "docker-compose build",
         "docker:run": "docker-compose up",
         "docker:down": "docker-compose down",
