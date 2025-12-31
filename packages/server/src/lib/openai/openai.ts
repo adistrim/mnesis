@@ -13,6 +13,17 @@ import type {
 import { llmServiceError } from "../errors";
 import { executeTools, type ToolCall } from "@/tools";
 
+/*
+    source: https://api-docs.deepseek.com/quick_start/parameter_settings
+    date: 29/11/2025 (DD/MM/YYYY)
+    The Temperature Parameter:
+        Coding / Math = 0.0
+        Data Cleaning / Data Analysis = 1.0
+        General Conversation = 1.3
+        Translation = 1.3
+        Creative Writing / Poetry = 1.5
+*/
+
 const TEMPERATURE = 1.3;
 export const MAX_TOOL_ITERATIONS = 5;
 
