@@ -12,6 +12,7 @@ import {
     sessionNotFoundError,
 } from "@/lib/errors";
 import { buildSessionContext } from "./session";
+import { getToolDefinitions } from "@/tools";
 
 export async function getResponse(
     sessionId: string,
@@ -27,12 +28,16 @@ export async function getResponse(
     // generate session context (if any)
     const sessionContext = await buildSessionContext(sessionId);
 
+    // fetch available tools from MCP server
+    const tools = await getToolDefinitions();
+
     // generate LLM response
     const completion = await genLLMResponse({
         type: requestType,
         sysPrompt,
         userPrompt,
         sessionContext,
+        tools,
     });
 
     // validate LLM response

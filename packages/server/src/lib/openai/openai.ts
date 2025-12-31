@@ -14,7 +14,7 @@ import { llmServiceError } from "../errors";
 import { executeTools, type ToolCall } from "@/tools";
 
 const TEMPERATURE = 1.3;
-const MAX_TOOL_ITERATIONS = 5;
+export const MAX_TOOL_ITERATIONS = 5;
 
 const openai = new OpenAI({
     baseURL: settings.LLM_HOST,
