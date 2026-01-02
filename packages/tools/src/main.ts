@@ -1,18 +1,20 @@
+import { MCP_PORT } from "./config";
+import { initDB } from "./lib/db/init-db";
 import app, { logger, SERVER_NAME, SERVER_VERSION } from "./server";
 
-const PORT = process.env.MCP_PORT ? parseInt(process.env.MCP_PORT, 10) : 3001;
+initDB();
 
 logger.info("MCP Tools Server starting", {
     server: SERVER_NAME,
     version: SERVER_VERSION,
-    port: PORT,
+    port: MCP_PORT,
 });
 
-console.log(`Starting MCP Tools Server on port ${PORT}`);
-console.log(`Health check: http://localhost:${PORT}/health`);
-console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
+console.log(`Starting MCP Tools Server on port ${MCP_PORT}`);
+console.log(`Health check: http://localhost:${MCP_PORT}/health`);
+console.log(`MCP endpoint: http://localhost:${MCP_PORT}/mcp`);
 
 export default {
-    port: PORT,
+    port: MCP_PORT,
     fetch: app.fetch,
 };

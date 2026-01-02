@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import dbClient from "../db/client";
 
 export interface LogEntry {
   id: number;
@@ -9,12 +9,6 @@ export interface LogEntry {
 }
 
 export class Logger {
-  private db: Database;
-
-  constructor(dbPath: string = 'logs.db') {
-    this.db = new Database(dbPath);
-  }
-
   private log(
     level: LogEntry['level'],
     message: string,
@@ -23,7 +17,7 @@ export class Logger {
     const timestamp = new Date().toISOString();
     const contextJson = context ? JSON.stringify(context) : null;
 
-    this.db.run(
+    dbClient.run(
       `INSERT INTO logs (timestamp, level, message, context)
        VALUES (?, ?, ?, ?)`,
       [timestamp, level, message, contextJson]

@@ -8,3 +8,18 @@ services:
             - ./packages/server/.env
         ports:
             - "80:3000"
+    
+    tools:
+        build:
+            context: ./packages/tools
+            dockerfile: Dockerfile
+        image: mnesis-tools:latest
+        env_file:
+            - ./packages/tools/.env
+        ports:
+            - "3001:3001"
+        volumes:
+            - tools-data:/data
+
+volumes:
+  tools-data:
