@@ -1,7 +1,6 @@
-import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { ROLE, type Message } from '@/types/chat.type';
-import Markdown from "react-markdown";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface Props {
   messages: Message[];
@@ -29,29 +28,26 @@ export function MessageList({ messages, isLoading, containerRef, endRef }: Props
             key={message.id}
             className={`flex ${message.role === ROLE.USER ? 'justify-end' : 'justify-start'}`}
           >
-            <Card
-              className={`max-w-[80%] p-4 ${
-                message.role === ROLE.USER
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              <div className="whitespace-pre-wrap wrap-break-words">
-                {message.role === ROLE.USER ? (
-                  message.content
-                ) : (
-                  <Markdown>{message.content}</Markdown>
-                )}
+            {message.role === ROLE.USER ? (
+              <div className="max-w-[80%] px-4 py-3 bg-secondary text-secondary-foreground rounded-2xl rounded-br-md shadow-sm">
+                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  {message.content}
+                </div>
               </div>
-            </Card>
+            ) : (
+              <div className="w-full">
+                <MarkdownRenderer content={message.content} />
+              </div>
+            )}
           </div>
         ))}
 
         {isLoading && (
           <div className="flex justify-start">
-            <Card className="max-w-[80%] p-4 bg-muted">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </Card>
+            <div className="flex items-center gap-2 text-muted-foreground py-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Thinking...</span>
+            </div>
           </div>
         )}
 
