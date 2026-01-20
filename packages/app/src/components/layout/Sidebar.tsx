@@ -110,8 +110,9 @@ export function Sidebar({ currentSessionId, onSelect, newSession }: {
                       currentSessionId === s.id && 'font-medium'
                     )}
                     onClick={() => onSelect(s.id)}
+                    title={s.title}
                   >
-                    <span className="truncate">{s.title}</span>
+                    {s.title.length > 25 ? `${s.title.slice(0, 25)}...` : s.title}
                   </Button>
                   <Button
                     type="button"
