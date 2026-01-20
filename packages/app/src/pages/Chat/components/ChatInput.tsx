@@ -1,7 +1,6 @@
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useRef, useEffect } from 'react';
 
 interface Props {
   input: string;
@@ -20,43 +19,54 @@ export function ChatInput({
   onKeyDown,
   textareaRef
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
+  }, [input, textareaRef]);
+
   return (
-    <div className="border-t px-6 py-4">
+    <div className="px-4 py-4 bg-linear-to-t from-background via-background to-transparent">
       <div className="max-w-3xl mx-auto">
-        <div className="flex gap-2">
-          <Textarea
+        <div 
+          ref={containerRef}
+          className="relative flex items-end bg-muted/50 border border-border rounded-2xl shadow-sm hover:shadow-md focus-within:shadow-md focus-within:border-primary/50 transition-all duration-200"
+        >
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Type your message..."
-            className="max-h-[200px] resize-none"
+            placeholder="Message..."
             disabled={isLoading}
-            ref={textareaRef}
+            rows={1}
+            className="flex-1 bg-transparent px-4 py-3 pr-14 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none max-h-[200px] scrollbar-thin"
+            style={{ minHeight: '48px' }}
           />
-          <div className='flex flex-col justify-end'>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={submit}
-                  size="lg"
-                  disabled={!input.trim() || isLoading}
-                  aria-label="Send Message"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                  Send Message
-                </TooltipContent>
-            </Tooltip>
+          
+          <div className="absolute right-2 bottom-2">
+            <Button
+              onClick={submit}
+              size="icon"
+              disabled={!input.trim() || isLoading}
+              className="h-8 w-8 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              aria-label="Send Message"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Press Enter to send, Shift+Enter for new line
+        
+        <p className="text-xs text-muted-foreground/60 text-center mt-2">
+          Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> to send · <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
         </p>
       </div>
     </div>
