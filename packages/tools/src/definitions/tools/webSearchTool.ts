@@ -4,7 +4,7 @@ export const WEB_SEARCH_TOOL = "web_search";
 
 export const webSearchTool: ToolDefinition = {
     name: WEB_SEARCH_TOOL,
-    description: "Search the web for current information. Use this when you need up-to-date information, recent events, or facts you're uncertain about. Returns a list of relevant web pages with titles, URLs, snippets (brief descriptions), and ranking. The snippets often contain enough information to answer the user's question without needing to fetch the full page content.",
+    description: "Search the web for current information. Use this when you need up-to-date information, recent events, or facts you're uncertain about. Returns a list of relevant web pages with titles, URLs, snippets (brief descriptions), and ranking. The snippets often contain enough information to answer the user's question without needing to fetch the full page content. Response includes success/error metadata when the search fails.",
     inputSchema: {
         type: "object",
         properties: {
@@ -15,6 +15,10 @@ export const webSearchTool: ToolDefinition = {
             maxResults: {
                 type: "number",
                 description: "Maximum number of search results to return. Use fewer results for simple queries, more for complex research. Default is 10.",
+            },
+            timeoutMs: {
+                type: "number",
+                description: "Timeout in milliseconds for the search request. Default is 30000.",
             },
         },
         required: ["query"],

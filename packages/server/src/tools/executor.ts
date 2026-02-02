@@ -1,4 +1,5 @@
 import { settings } from "@/config/settings";
+import { fetchWithRetry } from "./mcpFetch";
 
 export interface ToolCall {
     id: string;
@@ -26,29 +27,86 @@ interface McpResponse {
     };
 }
 
+interface ToolErrorDetails {
+    type: string;
+    message: string;
+    details?: string;
+}
+
+function buildToolErrorDetails(error: unknown): ToolErrorDetails {
+    if (error instanceof Error) {
+        return {
+            type: "mcp_error",
+            message: error.message,
+        };
+    }
+    return {
+        type: "mcp_error",
+        message: "Unknown error",
+        details: String(error),
+    };
+}
+
+function buildToolErrorResult(
+    toolCallId: string,
+    toolName: string,
+    error: unknown,
+    extra?: Record<string, unknown>,
+): ToolResult {
+    const payload = {
+        success: false,
+        tool: toolName,
+        error: buildToolErrorDetails(error),
+        ...extra,
+    };
+
+    return {
+        tool_call_id: toolCallId,
+        role: "tool",
+        content: JSON.stringify(payload),
+    };
+}
+
 /**
  * Calls the MCP tools server to execute a tool
  */
 async function callMcpTool(name: string, args: Record<string, unknown>): Promise<string> {
-    const response = await fetch(`${settings.MCP_TOOLS_URL}/mcp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: Date.now(),
-            method: "tools/call",
-            params: {
-                name,
-                arguments: args,
-            },
-        }),
-    });
+    const response = await fetchWithRetry(
+        `${settings.MCP_TOOLS_URL}/mcp`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: Date.now(),
+                method: "tools/call",
+                params: {
+                    name,
+                    arguments: args,
+                },
+            }),
+        },
+        {
+            timeoutMs: 10_000,
+            retries: 1,
+            backoffMs: 200,
+        },
+    );
 
     if (!response.ok) {
         throw new Error(`MCP server error: ${response.status} ${response.statusText}`);
     }
 
-    const data = (await response.json()) as McpResponse;
+    let data: McpResponse;
+    try {
+        data = (await response.json()) as McpResponse;
+    } catch (error) {
+        throw new Error(
+            error instanceof Error
+                ? `Invalid JSON from MCP server: ${error.message}`
+                : "Invalid JSON from MCP server",
+        );
+    }
 
     if (data.error) {
         throw new Error(`MCP tool error: ${data.error.message}`);
@@ -72,7 +130,10 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
             rawArguments: fn.arguments,
             error,
         });
-        throw error;
+        return buildToolErrorResult(id, fn.name, error, {
+            reason: "invalid_arguments",
+            rawArguments: fn.arguments,
+        });
     }
 
     console.log("Tool execution started", {
@@ -102,7 +163,9 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
             arguments: args,
             error,
         });
-        throw error;
+        return buildToolErrorResult(id, fn.name, error, {
+            reason: "execution_failed",
+        });
     }
 }
 
@@ -112,5 +175,17 @@ export async function executeTools(toolCalls: ToolCall[]): Promise<ToolResult[]>
         toolNames: toolCalls.map((tc) => tc.function.name),
     });
 
-    return Promise.all(toolCalls.map(executeTool));
+    const results = await Promise.allSettled(toolCalls.map(executeTool));
+    return results.map((result, index) => {
+        if (result.status === "fulfilled") {
+            return result.value;
+        }
+        const toolCall = toolCalls[index];
+        return buildToolErrorResult(
+            toolCall?.id ?? `tool-${index}`,
+            toolCall?.function?.name ?? "unknown_tool",
+            result.reason,
+            { reason: "execution_failed" },
+        );
+    });
 }

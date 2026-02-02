@@ -59,7 +59,12 @@ async function handleToolsList(id: string | number | undefined): Promise<JsonRpc
 }
 
 async function handleToolsCall(id: string | number | undefined, params: Record<string, unknown>): Promise<JsonRpcResponse> {
-    const { name, arguments: args } = params as { name: string; arguments: Record<string, unknown> };
+    const { name, arguments: rawArgs } = params as {
+        name?: string;
+        arguments?: Record<string, unknown>;
+    };
+    const args =
+        rawArgs && typeof rawArgs === "object" ? rawArgs : ({} as Record<string, unknown>);
 
     logger.info("Tool execution started", {
         requestId: id,
@@ -73,14 +78,16 @@ async function handleToolsCall(id: string | number | undefined, params: Record<s
         switch (name) {
             case WEB_SEARCH_TOOL: {
                 const query = args.query as string;
-                const maxResults = (args.maxResults as number) ?? 5;
-                result = await performWebSearch(query, maxResults);
+                const maxResults = args.maxResults as number | undefined;
+                const timeoutMs = args.timeoutMs as number | undefined;
+                result = await performWebSearch(query, maxResults, timeoutMs);
                 break;
             }
 
             case FETCH_WEB_CONTENT_TOOL: {
                 const url = args.url as string;
-                result = await fetchWebContent(url);
+                const timeoutMs = args.timeoutMs as number | undefined;
+                result = await fetchWebContent(url, timeoutMs);
                 break;
             }
 

@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
-    "build": "bun build src/main.ts --compile --outfile ./dist/tools",
-    "prod": "./dist/tools"
+    "build": "bun build src/main.ts --minify --outfile=./dist/tools.js --target bun",
+    "prod": "bun ./dist/tools.js"
   },
   "devDependencies": {
     "@types/bun": "latest"
