@@ -1,6 +1,8 @@
 import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
-import db_client from "../client";
+import getDbClient from "@/db/client";
 import { ROLE } from "@/lib/openai/openai.type";
+
+const db_client = getDbClient();
 
 export async function saveSession(title: string) {
     try {

@@ -1,6 +1,11 @@
 import { settings } from "@/config/settings";
 import { SQL } from "bun";
 
-const db_client = new SQL(settings.DB_URL);
+let db_client: SQL | null = null;
 
-export default db_client;
+export default function getDbClient(): SQL {
+    if (!db_client) {
+        db_client = new SQL(settings.DB_URL);
+    }
+    return db_client;
+}

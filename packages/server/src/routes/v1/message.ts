@@ -1,4 +1,4 @@
-import db_client from "@/db/client";
+import getDbClient from "@/db/client";
 import { Hono } from "hono";
 
 export const messageRoute = new Hono();
@@ -14,6 +14,7 @@ type AiMessageRow = {
 };
 
 messageRoute.get("/", async () => {
+    const db_client = getDbClient();
     const rows = await db_client`
         SELECT id, session_id, model, tokens, reasoning, content, created_at
         FROM ai_messages

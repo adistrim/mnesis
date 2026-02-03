@@ -1,5 +1,7 @@
-import db_client from "@/db/client";
+import getDbClient from "@/db/client";
 import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
+
+const db_client = getDbClient();
 
 export async function ensureSession(sessionId: string): Promise<boolean> {
     try {
