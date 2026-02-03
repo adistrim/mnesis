@@ -34,11 +34,11 @@ function getAllowedOrigins(): string[] {
 }
 
 export const settings = {
-    PORT: process.env.PORT || 3000,
-    HOST: process.env.HOST || "http://localhost",
-    DB_URL: requireEnvVar("DB_URL"),
-    LLM_HOST_API: requireEnvVar("LLM_HOST_API"),
-    LLM_HOST: requireEnvVar("LLM_HOST"),
-    MCP_TOOLS_URL: process.env.MCP_TOOLS_URL || "http://localhost:3001",
-    CORS_ALLOWED_ORIGINS: getAllowedOrigins(),
+    get PORT() { return process.env.PORT || 3000; },
+    get HOST() { return process.env.HOST || "http://localhost"; },
+    get DB_URL() { return requireEnvVar("DB_URL"); },
+    get LLM_HOST_API() { return requireEnvVar("LLM_HOST_API"); },
+    get LLM_HOST() { return requireEnvVar("LLM_HOST"); },
+    get MCP_TOOLS_URL() { return process.env.MCP_TOOLS_URL || "http://localhost:3001"; },
+    get CORS_ALLOWED_ORIGINS() { return getAllowedOrigins(); },
 };
