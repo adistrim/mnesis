@@ -3,9 +3,7 @@
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/server.ts",
-    "build": "bun build src/server.ts --minify --outfile=./dist/server.js --target bun",
-    "prod": "bun ./dist/server.js",
+    "dev": "bun run --watch src/dev.ts",
     "generate": "drizzle-kit generate",
     "push": "drizzle-kit push"
   },
