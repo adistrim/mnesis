@@ -1,11 +1,15 @@
 import { settings } from "@/config/settings";
 import { SQL } from "bun";
 
-let db_client: SQL | null = null;
+class DatabaseClient {
+    private static instance: SQL | null = null;
 
-export default function getDbClient(): SQL {
-    if (!db_client) {
-        db_client = new SQL(settings.DB_URL);
+    static getInstance(): SQL {
+        if (!DatabaseClient.instance) {
+            DatabaseClient.instance = new SQL(settings.DB_URL);
+        }
+        return DatabaseClient.instance;
     }
-    return db_client;
 }
+
+export default DatabaseClient.getInstance;
