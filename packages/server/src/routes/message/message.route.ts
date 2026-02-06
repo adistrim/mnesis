@@ -13,7 +13,7 @@ type AiMessageRow = {
     created_at: string;
 };
 
-messageRoute.get("/", async () => {
+messageRoute.get("/", async (ctx) => {
     const db_client = getDbClient();
     const rows = await db_client`
         SELECT id, session_id, model, tokens, reasoning, content, created_at
@@ -28,10 +28,8 @@ messageRoute.get("/", async () => {
         tokens: r.tokens,
         reasoning: r.reasoning,
         content: r.content,
-        createdAt: r.created_at
+        createdAt: r.created_at,
     }));
 
-    return new Response(JSON.stringify(messageData), {
-        headers: { "Content-Type": "application/json" }
-    });
+    return ctx.json(messageData);
 });

@@ -7,7 +7,7 @@ import { Hono } from "hono";
 
 export const chatRoute = new Hono();
 
-chatRoute.post("/", async ctx => {
+chatRoute.post("/", async (ctx) => {
     const body = await ctx.req.json().catch(() => {
         throw invalidJsonError();
     });

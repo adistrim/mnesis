@@ -1,5 +1,9 @@
 import { deleteSession, getAllSessionDetails } from "@/db/repository/session";
-import { invalidJsonError, sessionNotFoundError, validationError } from "@/lib/errors";
+import {
+    invalidJsonError,
+    sessionNotFoundError,
+    validationError,
+} from "@/lib/errors";
 import { sessionRequestDto } from "./session.dto";
 import { buildSessionContext } from "@/service/session";
 import { ensureSession } from "@/db/repository/message";
@@ -7,12 +11,12 @@ import { Hono } from "hono";
 
 export const sessionRoute = new Hono();
 
-sessionRoute.get("/", async ctx => {
+sessionRoute.get("/", async (ctx) => {
     const sessions = await getAllSessionDetails();
     return ctx.json(sessions);
 });
 
-sessionRoute.delete("/", async ctx => {
+sessionRoute.delete("/", async (ctx) => {
     const body = await ctx.req.json().catch(() => {
         throw invalidJsonError();
     });
@@ -30,9 +34,9 @@ sessionRoute.delete("/", async ctx => {
     await deleteSession(sessionId);
 
     return ctx.json({ success: true }, 200);
-})
+});
 
-sessionRoute.post("/messages", async ctx => {
+sessionRoute.post("/messages", async (ctx) => {
     const body = await ctx.req.json().catch(() => {
         throw invalidJsonError();
     });
