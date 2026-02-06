@@ -1,4 +1,4 @@
-import { MAX_TOOL_ITERATIONS } from "@/lib/openai/openai";
+import { MAX_TOOL_ITERATIONS } from "@/lib/openai/constants";
 import type { promptType } from "@/prompts/prompt.type";
 
 const CURRENT_DATE = new Date().toLocaleDateString("en-US", {

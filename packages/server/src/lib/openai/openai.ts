@@ -12,6 +12,7 @@ import type {
 } from "openai/resources";
 import { isAppError, llmServiceError, validationError } from "@/lib/errors";
 import { executeTools, type ToolCall } from "@/tools";
+import { MAX_TOOL_ITERATIONS } from "./constants";
 
 /*
     source: https://api-docs.deepseek.com/quick_start/parameter_settings
@@ -25,7 +26,6 @@ import { executeTools, type ToolCall } from "@/tools";
 */
 
 const TEMPERATURE = 1.3;
-export const MAX_TOOL_ITERATIONS = 5;
 
 const openai = new OpenAI({
     baseURL: settings.LLM_HOST,
