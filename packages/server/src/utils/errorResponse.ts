@@ -1,6 +1,4 @@
-import { internalError } from "@/lib/errors";
-import { isAppError, type AppError } from "@/lib/errors/appError";
-import { ErrorDefinitions } from "@/lib/errors/codes";
+import { ErrorDefinitions, internalError, isAppError, type AppError } from "@/lib/errors";
 
 type ErrorPayload = {
   error: {

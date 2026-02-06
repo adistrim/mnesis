@@ -1,6 +1,7 @@
 import { databaseError, isAppError, sessionNotFoundError } from "@/lib/errors";
 import getDbClient from "@/db/client";
 import { ROLE } from "@/lib/openai/openai.type";
+import type { SessionExchange, SessionHistoryRow, SessionSummary } from "@/db/types";
 
 const db_client = getDbClient();
 
@@ -50,29 +51,25 @@ export async function deleteSession(sessionId: string) {
  *
  * If an AI reply for a user message is missing, the `ai` field will be undefined.
  */
-type Exchange = {
-    user: { id: number; content: string };
-    ai?: { id: number; content: string };
-};
 export async function getSessionPreview(sessionId: string) {
     try {
-        const rows = await db_client`
+        const rows = (await db_client`
             (
-                SELECT id, content, created_at, ${ROLE.USER} as role
+                SELECT id, content, created_at::text as "createdAt", ${ROLE.USER} as role
                 FROM user_messages
                 WHERE session_id = ${sessionId}::uuid
             )
             UNION ALL
             (
-                SELECT id, content, created_at, ${ROLE.ASSISTANT} as role
+                SELECT id, content, created_at::text as "createdAt", ${ROLE.ASSISTANT} as role
                 FROM ai_messages
                 WHERE session_id = ${sessionId}::uuid
             )
-            ORDER BY created_at
-        `;
+            ORDER BY "createdAt"
+        `) as unknown as SessionHistoryRow[];
 
-        const exchanges: Exchange[] = [];
-        let last: Exchange | null = null;
+        const exchanges: SessionExchange[] = [];
+        let last: SessionExchange | null = null;
 
         for (const r of rows) {
             if (r.role === "user") {
@@ -95,13 +92,14 @@ export async function getSessionPreview(sessionId: string) {
 
 export async function getAllSessionDetails() {
     try {
-        const rows = await db_client`
-            SELECT id, title, created_at
+        return (await db_client`
+            SELECT
+                id,
+                title,
+                created_at::text as "createdAt"
             FROM sessions
             ORDER BY created_at DESC
-        `;
-
-        return rows;
+        `) as unknown as SessionSummary[];
     } catch (error) {
         if (isAppError(error)) throw error;
         console.error("Database error in getAllSessions:", error);

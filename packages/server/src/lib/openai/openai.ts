@@ -10,8 +10,7 @@ import type {
     ChatCompletion,
     ChatCompletionMessageParam,
 } from "openai/resources";
-import { llmServiceError, validationError } from "@/lib/errors";
-import { isAppError } from "@/lib/errors/appError";
+import { isAppError, llmServiceError, validationError } from "@/lib/errors";
 import { executeTools, type ToolCall } from "@/tools";
 
 /*

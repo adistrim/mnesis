@@ -8,6 +8,7 @@ import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 import { ensureSession, saveExchange } from "@/db/repository/message";
 import {
     databaseError,
+    isAppError,
     invalidLLMResponseError,
     sessionNotFoundError,
 } from "@/lib/errors";
@@ -76,6 +77,7 @@ export async function getResponse(
             },
         });
     } catch (error) {
+        if (isAppError(error)) throw error;
         console.error("Error saving conversation exchange:", error);
         throw databaseError("Failed to save conversation exchange");
     }
