@@ -1,4 +1,4 @@
-import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
+import { databaseError, isAppError, sessionNotFoundError } from "@/lib/errors";
 import getDbClient from "@/db/client";
 import { ROLE } from "@/lib/openai/openai.type";
 
@@ -17,7 +17,7 @@ export async function saveSession(title: string) {
         }
         return session.id;
     } catch (error) {
-        if (error instanceof AppError) throw error;
+        if (isAppError(error)) throw error;
         console.error("Database error in saveSession:", error);
         throw databaseError("Failed to create session");
     }
@@ -35,7 +35,7 @@ export async function deleteSession(sessionId: string) {
             throw sessionNotFoundError(sessionId);
         }
     } catch (error) {
-        if (error instanceof AppError) throw error;
+        if (isAppError(error)) throw error;
         console.error("Database error in deleteSession:", error);
         throw databaseError("Failed to delete session");
     }
@@ -87,7 +87,7 @@ export async function getSessionPreview(sessionId: string) {
 
         return exchanges;
     } catch (error) {
-        if (error instanceof AppError) throw error;
+        if (isAppError(error)) throw error;
         console.error("Database error in getSessionPreview:", error);
         throw databaseError("Failed to get session preview");
     }
@@ -103,7 +103,7 @@ export async function getAllSessionDetails() {
 
         return rows;
     } catch (error) {
-        if (error instanceof AppError) throw error;
+        if (isAppError(error)) throw error;
         console.error("Database error in getAllSessions:", error);
         throw databaseError("Failed to get all sessions");
     }

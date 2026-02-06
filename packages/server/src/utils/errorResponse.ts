@@ -1,38 +1,37 @@
-import { AppError } from "@/lib/errors";
+import { internalError } from "@/lib/errors";
+import { isAppError, type AppError } from "@/lib/errors/appError";
+import { ErrorDefinitions } from "@/lib/errors/codes";
+
+type ErrorPayload = {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+};
+
+const INTERNAL_ERROR = internalError();
+
+function toPayload(error: AppError): ErrorPayload {
+    return {
+        error: {
+            code: error.code,
+            message: error.message,
+            ...(error.details !== undefined && { details: error.details }),
+        },
+    };
+}
 
 export function errorResponse(error: unknown): Response {
-    if (error instanceof AppError) {
-        const payload: {
-            error: { code: string; message: string; details?: unknown };
-        } = {
-            error: {
-                code: error.code,
-                message: error.message,
-            },
-        };
-
-        if (error.details !== undefined) {
-            payload.error.details = error.details;
-        }
-
-        return new Response(JSON.stringify(payload), {
-            status: error.statusCode,
-            headers: { "Content-Type": "application/json" },
+    if (isAppError(error)) {
+        return Response.json(toPayload(error), {
+            status: ErrorDefinitions[error.code].status,
         });
     }
 
     console.error("Unexpected error:", error);
 
-    return new Response(
-        JSON.stringify({
-            error: {
-                code: "INTERNAL_ERROR",
-                message: "An unexpected error occurred",
-            },
-        }),
-        {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-        },
-    );
+    return Response.json(toPayload(INTERNAL_ERROR), {
+        status: ErrorDefinitions.INTERNAL_ERROR.status,
+    });
 }

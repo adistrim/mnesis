@@ -1,5 +1,5 @@
 import getDbClient from "@/db/client";
-import { AppError, databaseError, sessionNotFoundError } from "@/lib/errors";
+import { databaseError, isAppError } from "@/lib/errors";
 
 const db_client = getDbClient();
 
@@ -16,8 +16,8 @@ export async function ensureSession(sessionId: string): Promise<boolean> {
 
         return rows.length > 0;
     } catch (error) {
-        if (error instanceof AppError) throw error;
-        throw sessionNotFoundError(sessionId);
+        if (isAppError(error)) throw error;
+        throw databaseError("Failed to check session");
     }
 }
 
@@ -46,7 +46,7 @@ export async function saveUserMessage(params: {
 
         return row.id;
     } catch (error) {
-        if (error instanceof AppError) throw error;
+        if (isAppError(error)) throw error;
         console.error("Database error in saveUserMessage:", error);
         throw databaseError("Failed to save user message");
     }
@@ -112,7 +112,7 @@ export async function saveAIMessageWithReasoning(params: {
 
         return { aiMessageId: aiRow.id, reasoningId };
     } catch (error) {
-        if (error instanceof AppError) throw error;
+        if (isAppError(error)) throw error;
         console.error("Database error in saveAIMessageWithReasoning:", error);
         throw databaseError("Failed to save AI message");
     }

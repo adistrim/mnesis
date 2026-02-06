@@ -10,7 +10,8 @@ import type {
     ChatCompletion,
     ChatCompletionMessageParam,
 } from "openai/resources";
-import { llmServiceError } from "../errors";
+import { llmServiceError, validationError } from "@/lib/errors";
+import { isAppError } from "@/lib/errors/appError";
 import { executeTools, type ToolCall } from "@/tools";
 
 /*
@@ -45,7 +46,7 @@ export async function genLLMResponse(
     } else if (type === LLMRequestType.Reasoning) {
         model = MODEL.REASONING;
     } else {
-        throw new Error(`Invalid request type: ${type}`);
+        throw validationError("Invalid request type", { type });
     }
 
     const messages: ChatCompletionMessageParam[] = [
@@ -92,6 +93,11 @@ export async function genLLMResponse(
 
         return completion;
     } catch (error) {
-        throw llmServiceError("Failed to generate LLM response");
+        if (isAppError(error)) {
+            throw error;
+        }
+
+        console.error("LLM response generation failed", error);
+        throw llmServiceError();
     }
 }

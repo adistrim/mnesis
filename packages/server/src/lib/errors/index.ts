@@ -1,61 +1,61 @@
-export { AppError } from "./appError";
-export { ErrorCodes } from "./codes";
-import { AppError } from "./appError";
-import { ErrorCodes } from "./codes";
+import { ErrorDefinitions, type ErrorCode } from "./codes";
+import {
+    isAppError,
+    makeAppError,
+    type AppError,
+    type AppErrorInput,
+} from "./appError";
 
-// 400 - Bad Request
-export function validationError(message: string, details?: unknown) {
-    return new AppError(400, ErrorCodes.INVALID_FIELD, message, details);
-}
+export type { AppError, AppErrorInput, ErrorCode };
+export { ErrorDefinitions, isAppError, makeAppError };
 
-export function invalidJsonError() {
-    return new AppError(400, ErrorCodes.INVALID_JSON, "Invalid JSON body");
-}
+export const invalidJsonError = (details?: unknown) =>
+    makeAppError("INVALID_JSON", { details });
 
-export function missingFieldError(field: string) {
-    return new AppError(
-        400,
-        ErrorCodes.MISSING_FIELD,
-        `Missing required field: ${field}`,
-    );
-}
+export const validationError = (message: string, details?: unknown) =>
+    makeAppError("INVALID_FIELD", { message, details });
 
-// 404 - Not Found
-export function sessionNotFoundError(sessionId: string) {
-    return new AppError(
-        404,
-        ErrorCodes.SESSION_NOT_FOUND,
-        "Session not found",
-        { sessionId },
-    );
-}
+export const missingFieldError = (field: string) =>
+    makeAppError("MISSING_FIELD", {
+        message: `Missing required field: ${field}`,
+        details: { field },
+    });
 
-export function notFoundError(resource: string) {
-    return new AppError(
-        404,
-        ErrorCodes.RESOURCE_NOT_FOUND,
-        `${resource} not found`,
-    );
-}
+export const unauthorizedError = (
+    message: string = ErrorDefinitions.UNAUTHORIZED.message,
+) =>
+    makeAppError("UNAUTHORIZED", { message });
 
-// 502 - Bad Gateway (external service issues)
-export function llmServiceError(message: string = "LLM service unavailable") {
-    return new AppError(502, ErrorCodes.LLM_SERVICE_ERROR, message);
-}
+export const forbiddenError = (
+    message: string = ErrorDefinitions.FORBIDDEN.message,
+) =>
+    makeAppError("FORBIDDEN", { message });
 
-export function invalidLLMResponseError() {
-    return new AppError(
-        502,
-        ErrorCodes.INVALID_LLM_RESPONSE,
-        "LLM returned invalid response",
-    );
-}
+export const sessionNotFoundError = (sessionId: string) =>
+    makeAppError("SESSION_NOT_FOUND", {
+        message: ErrorDefinitions.SESSION_NOT_FOUND.message,
+        details: { sessionId },
+    });
 
-export function databaseError(message: string = "Database operation failed") {
-    return new AppError(502, ErrorCodes.DATABASE_ERROR, message);
-}
+export const resourceNotFoundError = (resource?: string) =>
+    makeAppError("RESOURCE_NOT_FOUND", {
+        message: resource
+            ? `${resource} not found`
+            : ErrorDefinitions.RESOURCE_NOT_FOUND.message,
+    });
 
-// 500 - Internal Server Error
-export function internalError(message: string = "Internal server error") {
-    return new AppError(500, ErrorCodes.INTERNAL_ERROR, message);
-}
+export const llmServiceError = (
+    message: string = ErrorDefinitions.LLM_SERVICE_ERROR.message,
+    details?: unknown,
+) => makeAppError("LLM_SERVICE_ERROR", { message, details });
+
+export const invalidLLMResponseError = (details?: unknown) =>
+    makeAppError("INVALID_LLM_RESPONSE", { details });
+
+export const databaseError = (
+    message: string = ErrorDefinitions.DATABASE_ERROR.message,
+    details?: unknown,
+) => makeAppError("DATABASE_ERROR", { message, details });
+
+export const internalError = (details?: unknown) =>
+    makeAppError("INTERNAL_ERROR", { details });
