@@ -1,6 +1,7 @@
-import { MCP_PORT } from "./config";
+import { MCP_PORT, SERVER_NAME, SERVER_VERSION } from "./config";
 import { initDB } from "./lib/db/init-db";
-import app, { logger, SERVER_NAME, SERVER_VERSION } from "./server";
+import { logger } from "./lib/logger";
+import app from "./server";
 
 initDB();
 

@@ -7,6 +7,9 @@ function parseIntEnv(name: string, fallback: number): number {
     return Number.isFinite(value) ? value : fallback;
 }
 
+export const SERVER_NAME = "mnesis-tools";
+export const SERVER_VERSION = "0.0.1";
+
 export const MCP_PORT = process.env.MCP_PORT || 3000;
 export const DB_PATH = process.env.DB_PATH || "logs.db";
 
