@@ -5,7 +5,7 @@ import { logger } from "../lib/logger";
 
 const app = new Hono();
 
-app.post("/mcp", async (c) => {
+app.post("/", async (c) => {
     try {
         const body = await c.req.json();
 
@@ -26,3 +26,5 @@ app.post("/mcp", async (c) => {
         return c.json(error(undefined, -32700, `Parse error: ${message}`), 400);
     }
 });
+
+export default app;
