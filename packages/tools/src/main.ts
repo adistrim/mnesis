@@ -1,11 +1,17 @@
 import { IS_DEVELOPMENT, LOGGING_ENABLED, MCP_PORT, SERVER_NAME, SERVER_VERSION } from "./config";
 import { initDB } from "./lib/db/init-db";
 import { logger } from "./lib/logger";
+import { configureQuackBinaryPath, getQuackBinaryStatus } from "./lib/quack-binary";
 import app from "./server";
 
 if (LOGGING_ENABLED) {
     initDB();
 }
+
+configureQuackBinaryPath();
+
+const quackBinaryStatus = getQuackBinaryStatus();
+logger.info("Quack binary status", { ...quackBinaryStatus });
 
 logger.info("MCP Tools Server starting", {
     server: SERVER_NAME,
