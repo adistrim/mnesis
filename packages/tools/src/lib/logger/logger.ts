@@ -1,4 +1,5 @@
-import dbClient from "../db/client";
+import { LOGGING_ENABLED } from "../../config";
+import { getDbClient } from "../db/client";
 
 export interface LogEntry {
   id: number;
@@ -14,8 +15,13 @@ export class Logger {
     message: string,
     context?: Record<string, unknown>
   ): void {
+    if (!LOGGING_ENABLED) {
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     const contextJson = context ? JSON.stringify(context) : null;
+    const dbClient = getDbClient();
 
     dbClient.run(
       `INSERT INTO logs (timestamp, level, message, context)
