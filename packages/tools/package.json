@@ -4,10 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --watch src/main.ts",
-    "start": "bun run src/main.ts",
-    "build": "bun build src/main.ts --minify --outfile=./dist/tools.js --target bun",
-    "prod": "bun ./dist/tools.js"
+    "dev": "bun run --watch src/main.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

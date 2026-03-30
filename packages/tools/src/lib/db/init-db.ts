@@ -1,6 +1,8 @@
-import dbClient from "./client";
+import { getDbClient } from "./client";
 
 export function initDB() {
+    const dbClient = getDbClient();
+
     // SQLite pragmas
     dbClient.run(`
         PRAGMA journal_mode = WAL;

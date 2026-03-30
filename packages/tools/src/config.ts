@@ -7,11 +7,20 @@ function parseIntEnv(name: string, fallback: number): number {
     return Number.isFinite(value) ? value : fallback;
 }
 
+function isProductionEnv(): boolean {
+    return (
+        process.env.BUN_ENV === "prod"
+    );
+}
+
 export const SERVER_NAME = "mnesis-tools";
 export const SERVER_VERSION = "0.0.1";
 
 export const MCP_PORT = process.env.MCP_PORT || 3000;
 export const DB_PATH = process.env.DB_PATH || "logs.db";
+export const IS_PRODUCTION = isProductionEnv();
+export const IS_DEVELOPMENT = !IS_PRODUCTION;
+export const LOGGING_ENABLED = IS_DEVELOPMENT;
 
 export const WEB_SEARCH_TIMEOUT_MS = parseIntEnv("WEB_SEARCH_TIMEOUT_MS", 30000);
 export const FETCH_TIMEOUT_MS = parseIntEnv("FETCH_TIMEOUT_MS", 30000);
