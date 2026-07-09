@@ -1,71 +1,7 @@
 import { settings } from "@/config/settings";
 import { fetchWithRetry } from "./mcpFetch";
-
-export interface ToolCall {
-    id: string;
-    function: {
-        name: string;
-        arguments: string;
-    };
-}
-
-export interface ToolResult {
-    tool_call_id: string;
-    role: "tool";
-    content: string;
-}
-
-interface McpResponse {
-    jsonrpc: "2.0";
-    id: string | number | null;
-    result?: {
-        content: Array<{ type: string; text: string }>;
-    };
-    error?: {
-        code: number;
-        message: string;
-    };
-}
-
-interface ToolErrorDetails {
-    type: string;
-    message: string;
-    details?: string;
-}
-
-function buildToolErrorDetails(error: unknown): ToolErrorDetails {
-    if (error instanceof Error) {
-        return {
-            type: "mcp_error",
-            message: error.message,
-        };
-    }
-    return {
-        type: "mcp_error",
-        message: "Unknown error",
-        details: String(error),
-    };
-}
-
-function buildToolErrorResult(
-    toolCallId: string,
-    toolName: string,
-    error: unknown,
-    extra?: Record<string, unknown>,
-): ToolResult {
-    const payload = {
-        success: false,
-        tool: toolName,
-        error: buildToolErrorDetails(error),
-        ...extra,
-    };
-
-    return {
-        tool_call_id: toolCallId,
-        role: "tool",
-        content: JSON.stringify(payload),
-    };
-}
+import type { McpResponse, ToolCall, ToolResult } from "@/types/tools.type";
+import { buildToolErrorResult } from "@/utils/tool-utils";
 
 /**
  * Calls the MCP tools server to execute a tool

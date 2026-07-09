@@ -1,44 +1,44 @@
-function requireEnvVar(name: string): string {
-    const value = process.env[name];
-    if (!value) {
-        throw new Error(`Environment variable ${name} is required but not set.`);
-    }
-    return value;
+import { z } from "zod";
+
+const isProd = Bun.env.ENV === "prod";
+
+const defaultDevOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:80",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:80",
+];
+
+const envSchema = z.object({
+    ENV: z.enum(["prod", "dev", "test"]).default("dev"),
+    PORT: z.coerce.number().int().positive().default(3000),
+    HOST: z.url().default("http://localhost"),
+    DB_URL: z.string().min(1),
+    LLM_HOST_API: z.string().min(1),
+    LLM_HOST: z.string().min(1),
+    MCP_TOOLS_URL: z.url().default("http://localhost:3001"),
+    CORS_ALLOWED_ORIGINS: z
+        .string()
+        .optional()
+        .transform((val) => {
+        if (!val) {
+            return isProd ? [] : defaultDevOrigins;
+        }
+        return val
+            .split(",")
+            .map((o) => o.trim())
+            .filter(Boolean);
+        }),
+});
+
+const parsed = envSchema.safeParse(Bun.env);
+
+if (!parsed.success) {
+    console.error("Invalid environment variables:");
+    console.error(JSON.stringify(z.treeifyError(parsed.error), null, 2));
+    process.exit(1);
 }
 
-/**
- * Parse allowed origins from environment variable.
- * Supports comma-separated values or single value.
- * In development, defaults to allowing localhost origins.
- */
-function getAllowedOrigins(): string[] {
-    const envOrigins = process.env.CORS_ALLOWED_ORIGINS;
-    
-    if (envOrigins) {
-        return envOrigins.split(',').map(origin => origin.trim()).filter(Boolean);
-    }
-    
-    const isDevelopment = requireEnvVar("ENV") !== 'prod';
-    if (isDevelopment) {
-        return [
-            'http://localhost:5173',
-            'http://localhost:3000',
-            'http://localhost:80',
-            'http://127.0.0.1:5173',
-            'http://127.0.0.1:3000',
-            'http://127.0.0.1:80',
-        ];
-    }
-    
-    return [];
-}
-
-export const settings = {
-    get PORT() { return process.env.PORT || 3000; },
-    get HOST() { return process.env.HOST || "http://localhost"; },
-    get DB_URL() { return requireEnvVar("DB_URL"); },
-    get LLM_HOST_API() { return requireEnvVar("LLM_HOST_API"); },
-    get LLM_HOST() { return requireEnvVar("LLM_HOST"); },
-    get MCP_TOOLS_URL() { return process.env.MCP_TOOLS_URL || "http://localhost:3001"; },
-    get CORS_ALLOWED_ORIGINS() { return getAllowedOrigins(); },
-};
+export const settings = parsed.data;
