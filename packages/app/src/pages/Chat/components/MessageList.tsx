@@ -1,29 +1,35 @@
-import { Loader2 } from 'lucide-react';
 import { ROLE, type Message } from '@/types/chat.type';
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { ReasoningBlock } from "./ReasoningBlock";
+import { StreamStatus } from "./StreamStatus";
+import { SessionSkeleton } from "./SessionSkeleton";
 
 interface Props {
   messages: Message[];
   isLoading: boolean;
+  isSessionLoading?: boolean;
+  toolStatus?: string;
   containerRef: React.RefObject<HTMLDivElement | null>;
   endRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export function MessageList({ messages, isLoading, containerRef, endRef }: Props) {
+export function MessageList({ messages, isLoading, isSessionLoading, toolStatus, containerRef, endRef }: Props) {
   return (
     <div
       ref={containerRef}
       className="flex-1 overflow-y-auto px-6 py-8 min-h-0"
     >
       <div className="max-w-3xl mx-auto space-y-6">
-        {messages.length === 0 && (
+        {isSessionLoading && <SessionSkeleton />}
+
+        {!isSessionLoading && messages.length === 0 && (
           <div className="text-center text-muted-foreground mt-20">
             <p className="text-lg mb-2">Start a conversation</p>
             <p className="text-sm">Type a message below to begin</p>
           </div>
         )}
 
-        {messages.map((message) => (
+        {!isSessionLoading && messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === ROLE.USER ? 'justify-end' : 'justify-start'}`}
@@ -36,18 +42,33 @@ export function MessageList({ messages, isLoading, containerRef, endRef }: Props
               </div>
             ) : (
               <div className="w-full">
-                <MarkdownRenderer content={message.content} />
+                {message.reasoning && (
+                  <ReasoningBlock
+                    reasoning={message.reasoning}
+                    isStreaming={Boolean(message.isStreaming) && !message.content}
+                  />
+                )}
+
+                {message.isStreaming && !message.reasoning && !message.content && (
+                  <StreamStatus />
+                )}
+
+                {message.isStreaming && toolStatus && <StreamStatus tool={toolStatus} />}
+
+                {message.content && (
+                  <>
+                    <MarkdownRenderer content={message.content} />
+                    {message.isStreaming && <span className="stream-caret" aria-hidden />}
+                  </>
+                )}
               </div>
             )}
           </div>
         ))}
 
-        {isLoading && (
+        {isLoading && !isSessionLoading && !messages.some(m => m.isStreaming) && (
           <div className="flex justify-start">
-            <div className="flex items-center gap-2 text-muted-foreground py-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Thinking...</span>
-            </div>
+            <StreamStatus />
           </div>
         )}
 

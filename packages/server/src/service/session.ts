@@ -1,9 +1,8 @@
 import { getSessionPreview, saveSession } from "@/db/repository/session";
-import { genLLMResponse } from "@/lib/openai/openai";
+import { genLLMText } from "@/lib/openai/openai";
 import { ROLE } from "@/lib/openai/openai.type";
 import { getDefaultModel } from "@/lib/openai/models";
 import { genTitle } from "@/prompts";
-import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 
 export async function createSession(userPrompt: string): Promise<string> {
     const config = {
@@ -12,15 +11,13 @@ export async function createSession(userPrompt: string): Promise<string> {
         userPrompt,
     };
 
-    const response = await genLLMResponse(config);
+    const generated = (await genLLMText(config)).trim();
 
-    if (!isValidLLMResponse(response)) {
+    if (!generated) {
         console.warn("LLM failed to generate title, using fallback");
     }
 
-    const title = isValidLLMResponse(response)
-        ? response.choices[0].message.content.trim()
-        : "New session";
+    const title = generated || "New session";
 
     const sessionId = await saveSession(title);
     return sessionId;
@@ -43,6 +40,34 @@ export async function buildSessionContext(sessionId: string) {
             messages.push({
                 role: ROLE.ASSISTANT,
                 content: ex.ai.content
+            });
+        }
+    }
+
+    return messages;
+}
+
+/**
+ * Client-facing history. Separate from buildSessionContext because reasoning must never
+ * be replayed to the model — DeepSeek rejects reasoning_content on request messages.
+ */
+export async function buildSessionHistory(sessionId: string) {
+    const preview = await getSessionPreview(sessionId);
+    if (!preview || preview.length === 0) return [];
+
+    const messages = [];
+
+    for (const ex of preview) {
+        messages.push({
+            role: ROLE.USER,
+            content: ex.user?.content ?? "",
+        });
+
+        if (ex.ai?.content) {
+            messages.push({
+                role: ROLE.ASSISTANT,
+                content: ex.ai.content,
+                reasoning: ex.ai.reasoning ?? undefined,
             });
         }
     }

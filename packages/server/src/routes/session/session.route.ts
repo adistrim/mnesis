@@ -5,7 +5,7 @@ import {
     validationError,
 } from "@/lib/errors";
 import { sessionRequestDto } from "./session.dto";
-import { buildSessionContext } from "@/service/session";
+import { buildSessionHistory } from "@/service/session";
 import { ensureSession } from "@/db/repository/message";
 import { Hono } from "hono";
 
@@ -56,7 +56,7 @@ sessionRoute.post("/messages", async (ctx) => {
         throw sessionNotFoundError(sessionId);
     }
 
-    const messages = await buildSessionContext(sessionId);
+    const messages = await buildSessionHistory(sessionId);
 
     return ctx.json(messages);
 });

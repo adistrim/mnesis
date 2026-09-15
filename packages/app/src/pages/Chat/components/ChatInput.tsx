@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 
 interface Props {
   input: string;
   isLoading: boolean;
+  disabled?: boolean;
   setInput: (v: string) => void;
   submit: () => void;
+  stop: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
@@ -14,8 +16,10 @@ interface Props {
 export function ChatInput({
   input,
   isLoading,
+  disabled = false,
   setInput,
   submit,
+  stop,
   onKeyDown,
   textareaRef
 }: Props) {
@@ -42,22 +46,22 @@ export function ChatInput({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Message..."
-            disabled={isLoading}
+            disabled={isLoading || disabled}
             rows={1}
-            className="flex-1 bg-transparent px-4 py-3 pr-14 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none max-h-[200px] scrollbar-thin"
+            className="flex-1 bg-transparent px-4 py-3 pr-14 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none max-h-[200px]"
             style={{ minHeight: '48px' }}
           />
           
           <div className="absolute right-2 bottom-2">
             <Button
-              onClick={submit}
+              onClick={isLoading ? stop : submit}
               size="icon"
-              disabled={!input.trim() || isLoading}
+              disabled={disabled || (!isLoading && !input.trim())}
               className="h-8 w-8 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              aria-label="Send Message"
+              aria-label={isLoading ? 'Stop response' : 'Send Message'}
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Square className="w-3.5 h-3.5 fill-current" />
               ) : (
                 <Send className="w-4 h-4" />
               )}

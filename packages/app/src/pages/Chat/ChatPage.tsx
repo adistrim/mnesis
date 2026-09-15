@@ -12,13 +12,16 @@ export default function ChatPage() {
     input,
     models,
     model,
+    toolStatus,
     isLoading,
+    isSessionLoading,
     error,
     sessionId,
     setInput,
     setModel,
     newSession,
     submit,
+    stop,
     loadSession
   } = useChat();
 
@@ -62,6 +65,8 @@ export default function ChatPage() {
         <MessageList
           messages={messages}
           isLoading={isLoading}
+          isSessionLoading={isSessionLoading}
+          toolStatus={toolStatus}
           containerRef={messagesContainerRef}
           endRef={messagesEndRef}
         />
@@ -71,8 +76,10 @@ export default function ChatPage() {
         <ChatInput
           input={input}
           isLoading={isLoading}
+          disabled={isSessionLoading}
           setInput={setInput}
           submit={submit}
+          stop={stop}
           onKeyDown={handleKeyDown}
           textareaRef={textareaRef}
         />

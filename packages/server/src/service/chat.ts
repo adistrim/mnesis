@@ -1,87 +1,77 @@
-import { genLLMResponse } from "@/lib/openai/openai";
+import { streamLLMResponse } from "@/lib/openai/openai";
 import { sysPrompt } from "@/prompts";
-import { type CustomResponseType } from "@/lib/openai/openai.type";
-import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 import { ensureSession, saveExchange } from "@/db/repository/message";
-import {
-    databaseError,
-    isAppError,
-    invalidLLMResponseError,
-    sessionNotFoundError,
-} from "@/lib/errors";
+import { isAppError, sessionNotFoundError } from "@/lib/errors";
 import { buildSessionContext } from "./session";
 import { getToolDefinitions } from "@/tools";
+import { createAccumulator, type StreamEvent } from "@/lib/openai/stream.type";
 
-export async function getResponse(
+/**
+ * Streams a chat turn and persists the exchange once it settles — including when the
+ * client aborts, which resumes this generator at the yield and runs the `finally`.
+ */
+export async function* streamResponse(
     sessionId: string,
     userPrompt: string,
     model: string,
-) {
-    // ensure session exists
+    signal?: AbortSignal,
+): AsyncGenerator<StreamEvent> {
     const sessionExists = await ensureSession(sessionId);
     if (!sessionExists) {
         throw sessionNotFoundError(sessionId);
     }
 
-    // generate session context (if any)
     const sessionContext = await buildSessionContext(sessionId);
-
     const tools = getToolDefinitions();
+    const acc = createAccumulator(model);
 
-    // generate LLM response
-    const completion = await genLLMResponse({
-        model,
-        sysPrompt,
-        userPrompt,
-        sessionContext,
-        tools,
-    });
+    let finalized = false;
 
-    // validate LLM response
-    if (!isValidLLMResponse(completion)) {
-        throw invalidLLMResponseError();
-    }
+    const finalize = async () => {
+        // Abort and normal completion can both reach here; saveExchange has no
+        // idempotency key, so the guard is what prevents a duplicate row.
+        if (finalized) return;
+        finalized = true;
 
-    const customMsg = completion.choices[0].message as CustomResponseType;
+        // ai_messages.content is NOT NULL, and an aborted turn very often stops during
+        // the reasoning phase. A blank row would also surface as a phantom exchange in
+        // buildSessionContext, so drop it entirely instead.
+        if (!acc.content.trim()) {
+            console.warn("Skipping persistence: no content generated", { sessionId });
+            return;
+        }
 
-    const usage = completion.usage;
-    const prompt_tokens = Math.max(
-        (usage?.prompt_tokens ?? 0) - sysPrompt.tokens,
-        0,
-    );
-    const completion_tokens = usage?.completion_tokens ?? 0;
-    const reasoning_tokens =
-        usage?.completion_tokens_details?.reasoning_tokens ?? 0;
-    const response_tokens = Math.max(completion_tokens - reasoning_tokens, 0);
-    const message = customMsg.content;
-    const reasoning = customMsg.reasoning_content;
-    const respondedModel = completion.model;
+        const promptTokens = Math.max(acc.usage.promptTokens - sysPrompt.tokens, 0);
+        const responseTokens = Math.max(
+            acc.usage.completionTokens - acc.usage.reasoningTokens,
+            0,
+        );
 
-    try {
-        await saveExchange({
-            sessionId: sessionId,
-            user: {
-                content: userPrompt,
-                tokens: prompt_tokens,
-            },
-            ai: {
-                model: respondedModel,
-                content: message,
-                responseTokens: response_tokens,
-                reasoningTokens: reasoning_tokens ?? 0,
-                reasoningContent: reasoning ?? null,
-            },
-        });
-    } catch (error) {
-        if (isAppError(error)) throw error;
-        console.error("Error saving conversation exchange:", error);
-        throw databaseError("Failed to save conversation exchange");
-    }
-
-    const response = {
-        sessionId,
-        message,
+        try {
+            await saveExchange({
+                sessionId,
+                user: { content: userPrompt, tokens: promptTokens },
+                ai: {
+                    model: acc.model,
+                    content: acc.content,
+                    responseTokens,
+                    reasoningTokens: acc.usage.reasoningTokens,
+                    reasoningContent: acc.reasoning || null,
+                },
+            });
+        } catch (error) {
+            if (isAppError(error)) throw error;
+            console.error("Error saving conversation exchange:", error);
+        }
     };
 
-    return response;
+    try {
+        yield* streamLLMResponse(
+            { model, sysPrompt, userPrompt, sessionContext, tools },
+            acc,
+            signal,
+        );
+    } finally {
+        await finalize();
+    }
 }

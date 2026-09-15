@@ -2,6 +2,8 @@ export type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  reasoning?: string;
+  isStreaming?: boolean;
 };
 
 export interface Session {
@@ -30,7 +32,9 @@ export type ChatState = {
   sessionId?: string;
   models: ModelOption[];
   model?: string;
+  toolStatus?: string;
   isLoading: boolean;
+  isSessionLoading: boolean;
   error: string | null;
 };
 
@@ -39,6 +43,7 @@ export type ChatActions = {
   setModel: (model: string) => void;
   newSession: () => void;
   submit: () => Promise<void>;
+  stop: () => void;
   loadSession: (sessionId: string) => Promise<void>;
   setRefetchSessions: (refetch: () => void) => void;
 };

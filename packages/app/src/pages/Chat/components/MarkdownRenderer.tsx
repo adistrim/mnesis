@@ -4,14 +4,17 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
 interface MarkdownRendererProps {
     content: string;
 }
 
-function CodeBlock({ language, code }: { language?: string; code: string }) {
+const REMARK_PLUGINS = [remarkGfm];
+const REHYPE_PLUGINS = [rehypeRaw, rehypeSanitize];
+
+function CodeBlockBase({ language, code }: { language?: string; code: string }) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
@@ -60,6 +63,8 @@ function CodeBlock({ language, code }: { language?: string; code: string }) {
     );
 }
 
+
+const CodeBlock = memo(CodeBlockBase);
 
 const components: Components = {
     // Headings
@@ -248,12 +253,12 @@ const components: Components = {
     },
 };
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+function MarkdownRendererBase({ content }: MarkdownRendererProps) {
     return (
         <div className="prose-container text-foreground">
             <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                remarkPlugins={REMARK_PLUGINS}
+                rehypePlugins={REHYPE_PLUGINS}
                 components={components}
             >
                 {content}
@@ -261,3 +266,5 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         </div>
     );
 }
+
+export const MarkdownRenderer = memo(MarkdownRendererBase);

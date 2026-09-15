@@ -46,6 +46,7 @@ export type SessionHistoryRow = {
     content: string;
     createdAt: string;
     role: SessionHistoryRole;
+    reasoning: string | null;
 };
 
 export type SessionExchange = {
@@ -56,6 +57,7 @@ export type SessionExchange = {
     ai?: {
         id: AiMessageSelect["id"];
         content: AiMessageSelect["content"];
+        reasoning: string | null;
     };
 };
 

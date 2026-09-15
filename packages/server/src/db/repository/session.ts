@@ -55,15 +55,18 @@ export async function getSessionPreview(sessionId: string) {
     try {
         const rows = (await db_client`
             (
-                SELECT id, content, created_at::text as "createdAt", ${ROLE.USER} as role
+                SELECT id, content, created_at::text as "createdAt", ${ROLE.USER} as role,
+                       NULL::text as reasoning
                 FROM user_messages
                 WHERE session_id = ${sessionId}::uuid
             )
             UNION ALL
             (
-                SELECT id, content, created_at::text as "createdAt", ${ROLE.ASSISTANT} as role
-                FROM ai_messages
-                WHERE session_id = ${sessionId}::uuid
+                SELECT a.id, a.content, a.created_at::text as "createdAt", ${ROLE.ASSISTANT} as role,
+                       r.content as reasoning
+                FROM ai_messages a
+                LEFT JOIN ai_message_reasonings r ON r.message_id = a.id
+                WHERE a.session_id = ${sessionId}::uuid
             )
             ORDER BY "createdAt"
         `) as unknown as SessionHistoryRow[];
@@ -77,7 +80,7 @@ export async function getSessionPreview(sessionId: string) {
                 exchanges.push(last);
             } else {
                 if (last && !last.ai) {
-                    last.ai = { id: r.id, content: r.content };
+                    last.ai = { id: r.id, content: r.content, reasoning: r.reasoning };
                 }
             }
         }
