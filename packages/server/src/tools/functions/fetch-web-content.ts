@@ -1,7 +1,9 @@
 import { fetchContent } from "quack-search";
-import type { FetchResponse } from "./types";
-import { buildErrorDetails } from "@/lib/errors/error-utils";
 import z from "zod";
+import { settings } from "@/config/settings";
+import { buildErrorDetails } from "@/lib/errors/error-utils";
+import { resolveTimeout } from "@/utils/tool-utils";
+import type { FetchResponse } from "./types";
 
 export const urlSchema = z
     .url()
@@ -16,10 +18,23 @@ export async function fetchWebContent(
     url: string,
     timeoutMs?: number,
 ): Promise<FetchResponse> {
-    urlSchema.parse(url);
+    const parsedUrl = urlSchema.safeParse(url);
+    if (!parsedUrl.success) {
+        return {
+            url: typeof url === "string" ? url : "",
+            success: false,
+            reason: "invalid_url",
+            error: {
+                type: "validation_error",
+                message: "URL must be a valid http(s) URL.",
+            },
+        };
+    }
+
+    const resolvedTimeout = resolveTimeout(timeoutMs, settings.FETCH_TIMEOUT_MS);
 
     try {
-        const page = await fetchContent(url, timeoutMs ?? 30000);
+        const page = await fetchContent(parsedUrl.data, resolvedTimeout);
         if (!page.success) {
             return {
                 url,

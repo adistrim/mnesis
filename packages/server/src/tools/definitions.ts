@@ -1,103 +1,57 @@
 import type { ChatCompletionTool } from "openai/resources";
-import { settings } from "@/config/settings";
-import { fetchWithRetry } from "./mcpFetch";
 
-interface McpToolDefinition {
-    name: string;
-    description: string;
-    inputSchema: {
-        type: string;
-        properties: Record<string, unknown>;
-        required?: string[];
-    };
-}
+export const WEB_SEARCH_TOOL = "web_search";
+export const FETCH_WEB_CONTENT_TOOL = "fetch_web_content";
 
-interface McpToolsListResponse {
-    jsonrpc: "2.0";
-    id: string | number | null;
-    result?: {
-        tools: McpToolDefinition[];
-    };
-    error?: {
-        code: number;
-        message: string;
-    };
-}
-
-// Cache for tool definitions
-let cachedToolDefinitions: ChatCompletionTool[] | null = null;
-
-/**
- * Fetches tool definitions from the MCP tools server
- */
-export async function getToolDefinitions(): Promise<ChatCompletionTool[]> {
-    if (cachedToolDefinitions) {
-        return cachedToolDefinitions;
-    }
-
-    try {
-        const response = await fetchWithRetry(
-            `${settings.MCP_TOOLS_URL}/mcp`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    id: Date.now(),
-                    method: "tools/list",
-                    params: {},
-                }),
+const toolDefinitions: ChatCompletionTool[] = [
+    {
+        type: "function",
+        function: {
+            name: WEB_SEARCH_TOOL,
+            description: "Search the web for current information. Use this when you need up-to-date information, recent events, or facts you're uncertain about. Returns a list of relevant web pages with titles, URLs, snippets (brief descriptions), and ranking. The snippets often contain enough information to answer the user's question without needing to fetch the full page content. Response includes success/error metadata when the search fails.",
+            parameters: {
+                type: "object",
+                properties: {
+                    query: {
+                        type: "string",
+                        description: "The search query to find relevant information on the web",
+                    },
+                    maxResults: {
+                        type: "number",
+                        description: "Maximum number of search results to return. Use fewer results for simple queries, more for complex research. Default is 10.",
+                    },
+                    timeoutMs: {
+                        type: "number",
+                        description: "Timeout in milliseconds for the search request. Default is 30000.",
+                    },
+                },
+                required: ["query"],
             },
-            {
-                timeoutMs: 10_000,
-                retries: 1,
-                backoffMs: 200,
+        },
+    },
+    {
+        type: "function",
+        function: {
+            name: FETCH_WEB_CONTENT_TOOL,
+            description: "Fetch and read the full content of a specific web page. Only use this when the search snippets don't provide enough information and you need the complete page content. Returns the text content of the page or a failure reason with success/error metadata.",
+            parameters: {
+                type: "object",
+                properties: {
+                    url: {
+                        type: "string",
+                        description: "The URL of the web page to fetch content from",
+                    },
+                    timeoutMs: {
+                        type: "number",
+                        description: "Timeout in milliseconds for the fetch request. Default is 30000.",
+                    },
+                },
+                required: ["url"],
             },
-        );
+        },
+    },
+];
 
-        if (!response.ok) {
-            throw new Error(
-                `MCP server error: ${response.status} ${response.statusText}`,
-            );
-        }
-
-        let data: McpToolsListResponse;
-        try {
-            data = (await response.json()) as McpToolsListResponse;
-        } catch (error) {
-            throw new Error(
-                error instanceof Error
-                    ? `Invalid JSON from MCP server: ${error.message}`
-                    : "Invalid JSON from MCP server",
-            );
-        }
-
-        if (data.error) {
-            throw new Error(`MCP tools/list error: ${data.error.message}`);
-        }
-
-        const mcpTools = data.result?.tools ?? [];
-
-        // Convert MCP tool definitions to OpenAI format
-        cachedToolDefinitions = mcpTools.map((tool) => ({
-            type: "function" as const,
-            function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.inputSchema,
-            },
-        }));
-
-        return cachedToolDefinitions;
-    } catch (error) {
-        console.error("Failed to fetch MCP tool definitions", { error });
-        return cachedToolDefinitions ?? [];
-    }
-}
-
-/**
- * Clears the cached tool definitions (useful for testing or hot reload)
- */
-export function clearToolDefinitionsCache(): void {
-    cachedToolDefinitions = null;
+export function getToolDefinitions(): ChatCompletionTool[] {
+    return toolDefinitions;
 }

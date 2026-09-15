@@ -11,7 +11,8 @@ import type {
     ChatCompletionMessageParam,
 } from "openai/resources";
 import { isAppError, llmServiceError, validationError } from "@/lib/errors";
-import { executeTools, type ToolCall } from "@/tools";
+import { executeTools } from "@/tools";
+import { type ToolCall } from "@/types/tools.type";
 import { MAX_TOOL_ITERATIONS } from "./constants";
 
 /*

@@ -29,8 +29,7 @@ export async function getResponse(
     // generate session context (if any)
     const sessionContext = await buildSessionContext(sessionId);
 
-    // fetch available tools from MCP server
-    const tools = await getToolDefinitions();
+    const tools = getToolDefinitions();
 
     // generate LLM response
     const completion = await genLLMResponse({

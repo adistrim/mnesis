@@ -1,57 +1,6 @@
-import { settings } from "@/config/settings";
-import { fetchWithRetry } from "./mcpFetch";
-import type { McpResponse, ToolCall, ToolResult } from "@/types/tools.type";
+import type { ToolCall, ToolResult } from "@/types/tools.type";
 import { buildToolErrorResult } from "@/utils/tool-utils";
-
-/**
- * Calls the MCP tools server to execute a tool
- */
-async function callMcpTool(name: string, args: Record<string, unknown>): Promise<string> {
-    const response = await fetchWithRetry(
-        `${settings.MCP_TOOLS_URL}/mcp`,
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: Date.now(),
-                method: "tools/call",
-                params: {
-                    name,
-                    arguments: args,
-                },
-            }),
-        },
-        {
-            timeoutMs: 10_000,
-            retries: 1,
-            backoffMs: 200,
-        },
-    );
-
-    if (!response.ok) {
-        throw new Error(`MCP server error: ${response.status} ${response.statusText}`);
-    }
-
-    let data: McpResponse;
-    try {
-        data = (await response.json()) as McpResponse;
-    } catch (error) {
-        throw new Error(
-            error instanceof Error
-                ? `Invalid JSON from MCP server: ${error.message}`
-                : "Invalid JSON from MCP server",
-        );
-    }
-
-    if (data.error) {
-        throw new Error(`MCP tool error: ${data.error.message}`);
-    }
-
-    // Extract text content from MCP response
-    const textContent = data.result?.content?.find((c) => c.type === "text");
-    return textContent?.text ?? JSON.stringify(data.result);
-}
+import { toolRegistry } from "./registry";
 
 export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
     const { id, function: fn } = toolCall;
@@ -72,6 +21,14 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
         });
     }
 
+    const handler = toolRegistry[fn.name];
+    if (!handler) {
+        console.error("Unknown tool requested", { toolCallId: id, toolName: fn.name });
+        return buildToolErrorResult(id, fn.name, new Error(`Unknown tool: ${fn.name}`), {
+            reason: "unknown_tool",
+        });
+    }
+
     console.log("Tool execution started", {
         toolCallId: id,
         toolName: fn.name,
@@ -79,7 +36,7 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
     });
 
     try {
-        const content = await callMcpTool(fn.name, args);
+        const content = JSON.stringify(await handler(args));
 
         console.log("Tool execution completed", {
             toolCallId: id,

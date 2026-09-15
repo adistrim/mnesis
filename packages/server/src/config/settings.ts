@@ -18,7 +18,10 @@ const envSchema = z.object({
     DB_URL: z.string().min(1),
     LLM_HOST_API: z.string().min(1),
     LLM_HOST: z.string().min(1),
-    MCP_TOOLS_URL: z.url().default("http://localhost:3001"),
+    WEB_SEARCH_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+    FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+    WEB_SEARCH_MAX_RESULTS_DEFAULT: z.coerce.number().int().positive().default(10),
+    WEB_SEARCH_MAX_RESULTS_MAX: z.coerce.number().int().positive().default(10),
     CORS_ALLOWED_ORIGINS: z
         .string()
         .optional()

@@ -25,6 +25,9 @@ cp packages/server/.env.example packages/server/.env
 
 Fill in the required values in both the `.env` file.
 
+Web search and page fetching run in-process via `quack-search`; the optional
+`WEB_SEARCH_*` / `FETCH_TIMEOUT_MS` knobs in `packages/server/.env.example` tune them.
+
 3. Start development mode
 ```bash
 bun run dev
