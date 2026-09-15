@@ -1,8 +1,11 @@
 import type { ToolCall, ToolResult } from "@/types/tools.type";
 import { buildToolErrorResult } from "@/utils/tool-utils";
 import { toolRegistry } from "./registry";
+import { extractSources, mergeSources, type SourceRef } from "./sources";
 
-export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
+type ExecutedTool = { result: ToolResult; sources: SourceRef[] };
+
+export async function executeTool(toolCall: ToolCall): Promise<ExecutedTool> {
     const { id, function: fn } = toolCall;
 
     let args: Record<string, unknown>;
@@ -15,18 +18,24 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
             rawArguments: fn.arguments,
             error,
         });
-        return buildToolErrorResult(id, fn.name, error, {
-            reason: "invalid_arguments",
-            rawArguments: fn.arguments,
-        });
+        return {
+            result: buildToolErrorResult(id, fn.name, error, {
+                reason: "invalid_arguments",
+                rawArguments: fn.arguments,
+            }),
+            sources: [],
+        };
     }
 
     const handler = toolRegistry[fn.name];
     if (!handler) {
         console.error("Unknown tool requested", { toolCallId: id, toolName: fn.name });
-        return buildToolErrorResult(id, fn.name, new Error(`Unknown tool: ${fn.name}`), {
-            reason: "unknown_tool",
-        });
+        return {
+            result: buildToolErrorResult(id, fn.name, new Error(`Unknown tool: ${fn.name}`), {
+                reason: "unknown_tool",
+            }),
+            sources: [],
+        };
     }
 
     console.log("Tool execution started", {
@@ -36,7 +45,8 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
     });
 
     try {
-        const content = JSON.stringify(await handler(args));
+        const raw = await handler(args);
+        const content = JSON.stringify(raw);
 
         console.log("Tool execution completed", {
             toolCallId: id,
@@ -45,9 +55,10 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
         });
 
         return {
-            tool_call_id: id,
-            role: "tool",
-            content,
+            // Sources ride alongside, never on the ToolResult itself — that object becomes
+            // a `tool` message and DeepSeek rejects unknown fields on request messages.
+            result: { tool_call_id: id, role: "tool", content },
+            sources: extractSources(fn.name, raw),
         };
     } catch (error) {
         console.error("Tool execution failed", {
@@ -56,29 +67,45 @@ export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
             arguments: args,
             error,
         });
-        return buildToolErrorResult(id, fn.name, error, {
-            reason: "execution_failed",
-        });
+        return {
+            result: buildToolErrorResult(id, fn.name, error, {
+                reason: "execution_failed",
+            }),
+            sources: [],
+        };
     }
 }
 
-export async function executeTools(toolCalls: ToolCall[]): Promise<ToolResult[]> {
+export async function executeTools(
+    toolCalls: ToolCall[],
+): Promise<{ results: ToolResult[]; sources: SourceRef[] }> {
     console.log("Tool batch started", {
         toolCount: toolCalls.length,
         toolNames: toolCalls.map((tc) => tc.function.name),
     });
 
-    const results = await Promise.allSettled(toolCalls.map(executeTool));
-    return results.map((result, index) => {
-        if (result.status === "fulfilled") {
-            return result.value;
+    const settled = await Promise.allSettled(toolCalls.map(executeTool));
+
+    const results: ToolResult[] = [];
+    let sources: SourceRef[] = [];
+
+    settled.forEach((outcome, index) => {
+        if (outcome.status === "fulfilled") {
+            results.push(outcome.value.result);
+            sources = mergeSources(sources, outcome.value.sources);
+            return;
         }
+
         const toolCall = toolCalls[index];
-        return buildToolErrorResult(
-            toolCall?.id ?? `tool-${index}`,
-            toolCall?.function?.name ?? "unknown_tool",
-            result.reason,
-            { reason: "execution_failed" },
+        results.push(
+            buildToolErrorResult(
+                toolCall?.id ?? `tool-${index}`,
+                toolCall?.function?.name ?? "unknown_tool",
+                outcome.reason,
+                { reason: "execution_failed" },
+            ),
         );
     });
+
+    return { results, sources };
 }

@@ -1,3 +1,4 @@
+import type { SourceRef } from "@/tools/sources";
 import type {
     AiMessageInsert,
     AiMessageSelect,
@@ -18,6 +19,7 @@ export type SaveAIMessageInput = {
     responseTokens: AiMessageInsert["tokens"];
     reasoningTokens?: number;
     reasoningContent?: string | null;
+    citations?: SourceRef[];
 };
 
 export type SaveExchangeInput = {
@@ -32,6 +34,7 @@ export type SaveExchangeInput = {
         responseTokens: AiMessageInsert["tokens"];
         reasoningTokens?: number;
         reasoningContent?: string | null;
+        citations?: SourceRef[];
     };
 };
 
@@ -47,6 +50,7 @@ export type SessionHistoryRow = {
     createdAt: string;
     role: SessionHistoryRole;
     reasoning: string | null;
+    citations: SourceRef[] | string | null;
 };
 
 export type SessionExchange = {
@@ -58,6 +62,7 @@ export type SessionExchange = {
         id: AiMessageSelect["id"];
         content: AiMessageSelect["content"];
         reasoning: string | null;
+        citations: SourceRef[];
     };
 };
 

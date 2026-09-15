@@ -68,6 +68,7 @@ export async function buildSessionHistory(sessionId: string) {
                 role: ROLE.ASSISTANT,
                 content: ex.ai.content,
                 reasoning: ex.ai.reasoning ?? undefined,
+                sources: ex.ai.citations,
             });
         }
     }

@@ -4,11 +4,37 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { memo, useState } from "react";
+import { createContext, memo, useContext, useMemo, useState } from "react";
+import { citedSources, hostLabel, normalizeUrl, type SourceRef } from "@/lib/citations";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, Copy } from "lucide-react";
 
 interface MarkdownRendererProps {
     content: string;
+    sources?: SourceRef[];
+}
+
+/** Context, not a prop, so the module-level `components` object stays referentially
+ *  stable and the memoization the streaming path relies on is preserved. */
+type Citation = { index: number; title: string; url: string };
+
+const CitationContext = createContext<Map<string, Citation>>(new Map());
+
+/** Only a link whose entire label is a bare number is a citation. Without this guard a
+ *  normal link like [Reuters](url) — or a bare autolinked URL that remark-gfm turns into
+ *  an anchor — would have its text replaced by a number. */
+function numericLabel(children: React.ReactNode): string | undefined {
+    const single =
+        typeof children === "string"
+            ? children
+            : Array.isArray(children) && children.length === 1 && typeof children[0] === "string"
+              ? children[0]
+              : undefined;
+    if (single === undefined) return undefined;
+    const label = single.trim();
+    return /^\d{1,3}$/.test(label) ? label : undefined;
 }
 
 const REMARK_PLUGINS = [remarkGfm];
@@ -29,10 +55,12 @@ function CodeBlockBase({ language, code }: { language?: string; code: string }) 
                 <span className="text-xs text-zinc-400 font-mono">
                     {language || "text"}
                 </span>
-                <button
+                <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleCopy}
-                    className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
                     aria-label="Copy code"
+                    className="h-auto gap-1.5 px-2 py-1 text-xs font-normal text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60"
                 >
                     {copied ? (
                         <>
@@ -45,7 +73,7 @@ function CodeBlockBase({ language, code }: { language?: string; code: string }) 
                             <span>Copy</span>
                         </>
                     )}
-                </button>
+                </Button>
             </div>
             <SyntaxHighlighter
                 style={oneDark}
@@ -65,6 +93,53 @@ function CodeBlockBase({ language, code }: { language?: string; code: string }) 
 
 
 const CodeBlock = memo(CodeBlockBase);
+
+function CitationAwareLink({ href, children }: { href?: string; children: React.ReactNode }) {
+    const index = useContext(CitationContext);
+    const label = numericLabel(children);
+    const citation = href && label ? index.get(normalizeUrl(href)) : undefined;
+
+    if (citation) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Badge
+                        asChild
+                        variant="secondary"
+                        className="align-super min-w-[1.05rem] h-[1.05rem] px-1 ml-0.5 text-[0.65rem] leading-none tabular-nums no-underline hover:bg-primary/15 hover:text-primary"
+                    >
+                        <a
+                            href={citation.url}
+                            target="_blank"
+                            rel="noopener noreferrer nofollow ugc"
+                        >
+                            {citation.index}
+                        </a>
+                    </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                    <span className="block font-medium">{citation.title}</span>
+                    <span className="block opacity-70">{hostLabel(citation.url)}</span>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    // A bare-number label that resolves to nothing was meant as a citation but points
+    // somewhere we never retrieved. Showing the host beats showing a naked "9".
+    const fallback = label && href ? hostLabel(href) : children;
+
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer nofollow ugc"
+            className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+        >
+            {fallback}
+        </a>
+    );
+}
 
 const components: Components = {
     // Headings
@@ -218,16 +293,7 @@ const components: Components = {
 
     // Links
     a({ href, children }) {
-        return (
-            <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
-            >
-                {children}
-            </a>
-        );
+        return <CitationAwareLink href={href}>{children}</CitationAwareLink>;
     },
 
     // Text formatting
@@ -253,8 +319,19 @@ const components: Components = {
     },
 };
 
-function MarkdownRendererBase({ content }: MarkdownRendererProps) {
+function MarkdownRendererBase({ content, sources }: MarkdownRendererProps) {
+    const index = useMemo(() => {
+        const cited = citedSources(content, sources ?? []);
+        return new Map(
+            cited.map((s, i) => [
+                normalizeUrl(s.url),
+                { index: i + 1, title: s.title, url: s.url },
+            ]),
+        );
+    }, [content, sources]);
+
     return (
+        <CitationContext.Provider value={index}>
         <div className="prose-container text-foreground">
             <ReactMarkdown
                 remarkPlugins={REMARK_PLUGINS}
@@ -264,6 +341,7 @@ function MarkdownRendererBase({ content }: MarkdownRendererProps) {
                 {content}
             </ReactMarkdown>
         </div>
+        </CitationContext.Provider>
     );
 }
 

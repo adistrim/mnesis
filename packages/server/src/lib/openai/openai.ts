@@ -5,6 +5,7 @@ import type {
 } from "openai/resources";
 import { isAppError, llmServiceError } from "@/lib/errors";
 import { executeTools } from "@/tools";
+import { mergeSources } from "@/tools/sources";
 import { type ToolCall } from "@/types/tools.type";
 import { MAX_TOOL_ITERATIONS } from "./constants";
 import { openai } from "./client";
@@ -174,10 +175,17 @@ export async function* streamLLMResponse(
                 yield { type: "tool", name: call.function.name, status: "start" };
             }
 
-            const toolResults = await executeTools(toolCalls);
+            const { results: toolResults, sources } = await executeTools(toolCalls);
 
             for (const call of toolCalls) {
                 yield { type: "tool", name: call.function.name, status: "done" };
+            }
+
+            if (sources.length > 0) {
+                acc.sources = mergeSources(acc.sources, sources);
+                // Cumulative, not a delta — idempotent for the client, and a leg's content
+                // only streams after its tools resolve, so this always lands first.
+                yield { type: "sources", sources: acc.sources };
             }
 
             for (const result of toolResults) {

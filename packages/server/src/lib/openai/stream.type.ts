@@ -4,10 +4,13 @@ export type StreamUsage = {
     reasoningTokens: number;
 };
 
+import type { SourceRef } from "@/tools/sources";
+
 export type StreamEvent =
     | { type: "reasoning"; delta: string }
     | { type: "content"; delta: string }
     | { type: "tool"; name: string; status: "start" | "done" }
+    | { type: "sources"; sources: SourceRef[] }
     | { type: "error"; code: string; message: string };
 
 /**
@@ -18,6 +21,7 @@ export type StreamEvent =
 export type StreamAccumulator = {
     content: string;
     reasoning: string;
+    sources: SourceRef[];
     usage: StreamUsage;
     model: string;
 };
@@ -26,6 +30,7 @@ export function createAccumulator(model: string): StreamAccumulator {
     return {
         content: "",
         reasoning: "",
+        sources: [],
         usage: { promptTokens: 0, completionTokens: 0, reasoningTokens: 0 },
         model,
     };

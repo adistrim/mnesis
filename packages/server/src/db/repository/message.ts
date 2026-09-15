@@ -87,6 +87,7 @@ export async function saveExchange(params: SaveExchangeInput) {
                     responseTokens: params.ai.responseTokens,
                     reasoningTokens: params.ai.reasoningTokens,
                     reasoningContent: params.ai.reasoningContent,
+                    citations: params.ai.citations,
                 });
 
             return { userMessageId, aiMessageId, reasoningId };
@@ -149,14 +150,17 @@ async function insertAIMessageWithReasoning(
         Boolean(params.reasoningTokens && params.reasoningTokens > 0) &&
         Boolean(params.reasoningContent && params.reasoningContent.length > 0);
 
+    const citations = params.citations ?? [];
+
     const rows = await db`
-        INSERT INTO ai_messages (session_id, model, tokens, reasoning, content)
+        INSERT INTO ai_messages (session_id, model, tokens, reasoning, content, citations)
         VALUES (
             ${params.sessionId},
             ${params.model},
             ${params.responseTokens},
             ${reasoningPresent},
-            ${params.content}
+            ${params.content},
+            ${citations.length > 0 ? JSON.stringify(citations) : null}::jsonb
         )
         RETURNING id
     `;

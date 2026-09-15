@@ -5,6 +5,7 @@ import { settings } from '@/config';
 import { ROLE } from '@/types/chat.type';
 import { useModels } from '@/hooks/useModels';
 import { createSSEParser } from '@/lib/sse';
+import type { SourceRef } from '@/lib/citations';
 
 const getSessionIdFromUrl = (): string | null => {
   const pathname = window.location.pathname;
@@ -70,6 +71,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
         role: typeof ROLE.USER | typeof ROLE.ASSISTANT;
         content: string;
         reasoning?: string;
+        sources?: SourceRef[];
       }[] = await res.json();
 
       const mapped: Message[] = data.map((m, idx) => ({
@@ -77,6 +79,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
         role: m.role,
         content: m.content,
         reasoning: m.reasoning,
+        sources: m.sources,
       }));
 
       setMessages(mapped);
@@ -213,6 +216,11 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
               break;
             case 'tool':
               setToolStatus(payload.status === 'start' ? payload.name : undefined);
+              break;
+            case 'sources':
+              setMessages(prev =>
+                prev.map(m => (m.id === assistantId ? { ...m, sources: payload.sources } : m)),
+              );
               break;
             case 'error':
               setError(payload.message);

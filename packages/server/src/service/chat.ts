@@ -4,6 +4,7 @@ import { ensureSession, saveExchange } from "@/db/repository/message";
 import { isAppError, sessionNotFoundError } from "@/lib/errors";
 import { buildSessionContext } from "./session";
 import { getToolDefinitions } from "@/tools";
+import { citedSources } from "@/tools/sources";
 import { createAccumulator, type StreamEvent } from "@/lib/openai/stream.type";
 
 /**
@@ -57,6 +58,7 @@ export async function* streamResponse(
                     responseTokens,
                     reasoningTokens: acc.usage.reasoningTokens,
                     reasoningContent: acc.reasoning || null,
+                    citations: citedSources(acc.content, acc.sources),
                 },
             });
         } catch (error) {

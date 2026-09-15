@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { memo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   reasoning: string;
@@ -15,9 +16,11 @@ function ReasoningBlockBase({ reasoning, isStreaming }: Props) {
 
   return (
     <div className="mb-4">
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setExpandedByUser(!isOpen)}
-        className="flex items-center gap-1.5 -ml-1 px-1 py-0.5 rounded text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="h-auto -ml-2 px-2 py-1 gap-1.5 text-sm font-normal text-muted-foreground hover:text-foreground hover:bg-transparent"
         aria-expanded={isOpen}
       >
         <ChevronRight
@@ -28,7 +31,7 @@ function ReasoningBlockBase({ reasoning, isStreaming }: Props) {
         ) : (
           <span>Thought process</span>
         )}
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="mt-2 ml-[0.3rem] pl-4 border-l border-border/60 text-[0.8125rem] leading-[1.7] text-muted-foreground whitespace-pre-wrap break-words max-h-80 overflow-y-auto">

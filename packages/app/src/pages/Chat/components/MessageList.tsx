@@ -3,6 +3,8 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { StreamStatus } from "./StreamStatus";
 import { SessionSkeleton } from "./SessionSkeleton";
+import { SourceList } from "./SourceList";
+import { hideIncompleteLink } from "@/lib/citations";
 
 interface Props {
   messages: Message[];
@@ -57,8 +59,18 @@ export function MessageList({ messages, isLoading, isSessionLoading, toolStatus,
 
                 {message.content && (
                   <>
-                    <MarkdownRenderer content={message.content} />
+                    <MarkdownRenderer
+                      content={
+                        message.isStreaming
+                          ? hideIncompleteLink(message.content)
+                          : message.content
+                      }
+                      sources={message.sources}
+                    />
                     {message.isStreaming && <span className="stream-caret" aria-hidden />}
+                    {!message.isStreaming && message.sources && (
+                      <SourceList content={message.content} sources={message.sources} />
+                    )}
                   </>
                 )}
               </div>

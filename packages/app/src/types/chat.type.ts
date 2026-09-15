@@ -1,8 +1,11 @@
+import type { SourceRef } from '@/lib/citations';
+
 export type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   reasoning?: string;
+  sources?: SourceRef[];
   isStreaming?: boolean;
 };
 

@@ -1,4 +1,5 @@
 export * from "./sessions";
+export * from "./session_memory";
 export * from "./ai_messages";
 export * from "./documents";
 export * from "./document_chunks";

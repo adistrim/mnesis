@@ -1,3 +1,4 @@
+import type { SourceRef } from "@/tools/sources";
 import { databaseError, isAppError, sessionNotFoundError } from "@/lib/errors";
 import getDbClient from "@/db/client";
 import { ROLE } from "@/lib/openai/openai.type";
@@ -51,19 +52,31 @@ export async function deleteSession(sessionId: string) {
  *
  * If an AI reply for a user message is missing, the `ai` field will be undefined.
  */
+/** Bun's SQL driver may hand jsonb back already parsed or as text, so accept both. */
+function parseCitations(value: SourceRef[] | string | null): SourceRef[] {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
 export async function getSessionPreview(sessionId: string) {
     try {
         const rows = (await db_client`
             (
                 SELECT id, content, created_at::text as "createdAt", ${ROLE.USER} as role,
-                       NULL::text as reasoning
+                       NULL::text as reasoning, NULL::jsonb as citations
                 FROM user_messages
                 WHERE session_id = ${sessionId}::uuid
             )
             UNION ALL
             (
                 SELECT a.id, a.content, a.created_at::text as "createdAt", ${ROLE.ASSISTANT} as role,
-                       r.content as reasoning
+                       r.content as reasoning, a.citations
                 FROM ai_messages a
                 LEFT JOIN ai_message_reasonings r ON r.message_id = a.id
                 WHERE a.session_id = ${sessionId}::uuid
@@ -80,7 +93,12 @@ export async function getSessionPreview(sessionId: string) {
                 exchanges.push(last);
             } else {
                 if (last && !last.ai) {
-                    last.ai = { id: r.id, content: r.content, reasoning: r.reasoning };
+                    last.ai = {
+                        id: r.id,
+                        content: r.content,
+                        reasoning: r.reasoning,
+                        citations: parseCitations(r.citations),
+                    };
                 }
             }
         }
