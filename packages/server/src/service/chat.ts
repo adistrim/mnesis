@@ -6,6 +6,7 @@ import { buildSessionContext } from "./session";
 import { getToolDefinitions } from "@/tools";
 import { citedSources } from "@/tools/sources";
 import { createAccumulator, type StreamEvent } from "@/lib/openai/stream.type";
+import type { ResolvedContext } from "@/lib/openai/request-context";
 
 /**
  * Streams a chat turn and persists the exchange once it settles — including when the
@@ -15,6 +16,7 @@ export async function* streamResponse(
     sessionId: string,
     userPrompt: string,
     model: string,
+    requestContext?: ResolvedContext,
     signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
     const sessionExists = await ensureSession(sessionId);
@@ -41,6 +43,21 @@ export async function* streamResponse(
             console.warn("Skipping persistence: no content generated", { sessionId });
             return;
         }
+
+        // All three cache figures are summed across legs and agree with each other;
+        // acc.usage.promptTokens is first-leg-only (it feeds billing) so it is not mixed in.
+        const { cacheHitTokens, cacheMissTokens } = acc.usage;
+        const sentTokens = cacheHitTokens + cacheMissTokens;
+        console.log("Turn complete", {
+            model: acc.model,
+            toolLegs: acc.toolLegs,
+            sentTokens,
+            cacheHit: cacheHitTokens,
+            cacheMiss: cacheMissTokens,
+            hitRate: sentTokens
+                ? `${Math.round((100 * cacheHitTokens) / sentTokens)}%`
+                : "n/a",
+        });
 
         const promptTokens = Math.max(acc.usage.promptTokens - sysPrompt.tokens, 0);
         const responseTokens = Math.max(
@@ -69,7 +86,7 @@ export async function* streamResponse(
 
     try {
         yield* streamLLMResponse(
-            { model, sysPrompt, userPrompt, sessionContext, tools },
+            { model, sysPrompt, userPrompt, sessionContext, requestContext, tools },
             acc,
             signal,
         );

@@ -9,6 +9,7 @@ import { mergeSources } from "@/tools/sources";
 import { type ToolCall } from "@/types/tools.type";
 import { MAX_TOOL_ITERATIONS } from "./constants";
 import { openai } from "./client";
+import { renderContext } from "./request-context";
 import {
     createAccumulator,
     type StreamAccumulator,
@@ -90,11 +91,17 @@ export async function* streamLLMResponse(
     acc: StreamAccumulator,
     signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
-    const { model, sysPrompt, userPrompt, sessionContext, tools } = params;
+    const { model, sysPrompt, userPrompt, sessionContext, requestContext, tools } =
+        params;
     const hasTools = Array.isArray(tools) && tools.length > 0;
 
     const messages: ChatCompletionMessageParam[] = [
+        // The static prompt stays its own message so it remains one cache unit shared by
+        // every user; volatile per-user context goes in a separate message after it.
         { role: ROLE.SYSTEM, content: sysPrompt.content },
+        ...(requestContext
+            ? [{ role: ROLE.SYSTEM, content: renderContext(requestContext) } as const]
+            : []),
         ...(sessionContext ?? []),
         { role: ROLE.USER, content: userPrompt },
     ];
@@ -152,6 +159,15 @@ export async function* streamLLMResponse(
                     acc.usage.completionTokens += chunk.usage.completion_tokens ?? 0;
                     acc.usage.reasoningTokens +=
                         chunk.usage.completion_tokens_details?.reasoning_tokens ?? 0;
+
+                    // DeepSeek-only fields; summed across legs so the turn's overall
+                    // prefix-cache efficiency is visible.
+                    const cacheUsage = chunk.usage as typeof chunk.usage & {
+                        prompt_cache_hit_tokens?: number;
+                        prompt_cache_miss_tokens?: number;
+                    };
+                    acc.usage.cacheHitTokens += cacheUsage.prompt_cache_hit_tokens ?? 0;
+                    acc.usage.cacheMissTokens += cacheUsage.prompt_cache_miss_tokens ?? 0;
                 }
             }
 
@@ -159,6 +175,8 @@ export async function* streamLLMResponse(
 
             const toolCalls = toToolCalls(slots);
             if (toolCalls.length === 0) break;
+
+            acc.toolLegs += 1;
 
             messages.push({
                 role: ROLE.ASSISTANT,

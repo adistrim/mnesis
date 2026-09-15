@@ -3,6 +3,7 @@ import { chatRoute } from "./chat/chat.route";
 import { messageRoute } from "./message/message.route";
 import { sessionRoute } from "./session/session.route";
 import { modelRoute } from "./model/model.route";
+import { contextRoute } from "./context/context.route";
 
 type VersionRoute = {
     path: string;
@@ -14,6 +15,7 @@ const v1RouteManifest: VersionRoute[] = [
     { path: "/message", router: messageRoute },
     { path: "/session", router: sessionRoute },
     { path: "/model", router: modelRoute },
+    { path: "/context", router: contextRoute },
 ];
 
 export const v1Routes = new Hono();
@@ -24,4 +26,11 @@ for (const route of v1RouteManifest) {
     v1Routes.route(route.path, route.router);
 }
 
-export { chatRoute, messageRoute, sessionRoute, modelRoute, v1RouteManifest };
+export {
+    chatRoute,
+    messageRoute,
+    sessionRoute,
+    modelRoute,
+    contextRoute,
+    v1RouteManifest,
+};

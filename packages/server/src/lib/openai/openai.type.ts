@@ -1,5 +1,6 @@
 import type { promptType } from "@/prompts/prompt.type";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources";
+import type { ResolvedContext } from "./request-context";
 
 export const ROLE = {
     SYSTEM: "system",
@@ -12,6 +13,7 @@ export interface GenLLMResponseParams {
     sysPrompt: promptType;
     userPrompt: string;
     sessionContext?: Array<ChatCompletionMessageParam>;
+    requestContext?: ResolvedContext;
     tools?: Array<ChatCompletionTool>;
 }
 

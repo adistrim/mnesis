@@ -5,6 +5,8 @@ import { invalidJsonError, isAppError, validationError } from "@/lib/errors";
 import { chatRequestDto } from "./chat.dto";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { resolveContext } from "@/lib/openai/request-context";
+import { getConnInfo } from "hono/bun";
 
 export const chatRoute = new Hono();
 
@@ -21,9 +23,27 @@ chatRoute.post("/", async (ctx) => {
         });
     }
 
-    const { prompt, model, sessionId: providedSessionId } = parsed.data;
+    const { prompt, model, context, sessionId: providedSessionId } = parsed.data;
 
-    if (model && !(await isKnownModel(model))) {
+    // x-forwarded-for wins when a proxy is in front; otherwise the socket address.
+    const forwarded = ctx.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+    let clientIp = forwarded;
+    if (!clientIp) {
+        try {
+            clientIp = getConnInfo(ctx).remote.address;
+        } catch {
+            clientIp = undefined;
+        }
+    }
+
+    // Independent of each other, and both sit in front of the first token — so they
+    // overlap rather than queue.
+    const [requestContext, modelIsKnown] = await Promise.all([
+        resolveContext(context, ctx.req.raw.headers, clientIp),
+        model ? isKnownModel(model) : Promise.resolve(true),
+    ]);
+
+    if (!modelIsKnown) {
         throw validationError("Unknown model", { model });
     }
 
@@ -46,6 +66,7 @@ chatRoute.post("/", async (ctx) => {
                 sessionId,
                 prompt,
                 selectedModel,
+                requestContext,
                 controller.signal,
             )) {
                 const { type, ...payload } = event;

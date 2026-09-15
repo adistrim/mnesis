@@ -81,7 +81,7 @@ export async function getSessionPreview(sessionId: string) {
                 LEFT JOIN ai_message_reasonings r ON r.message_id = a.id
                 WHERE a.session_id = ${sessionId}::uuid
             )
-            ORDER BY "createdAt"
+            ORDER BY "createdAt", id
         `) as unknown as SessionHistoryRow[];
 
         const exchanges: SessionExchange[] = [];

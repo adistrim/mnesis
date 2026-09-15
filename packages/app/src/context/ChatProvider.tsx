@@ -4,8 +4,22 @@ import type { ChatContextValue, Message } from '@/types/chat.type';
 import { settings } from '@/config';
 import { ROLE } from '@/types/chat.type';
 import { useModels } from '@/hooks/useModels';
+import { useLocation } from '@/hooks/useLocation';
 import { createSSEParser } from '@/lib/sse';
 import type { SourceRef } from '@/lib/citations';
+
+/** Local date and a coarse region, with no permission prompt and no coordinates. */
+const clientContext = (coords: { latitude: number; longitude: number } | null) => {
+  try {
+    return {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      locale: navigator.language,
+      ...(coords ?? {}),
+    };
+  } catch {
+    return undefined;
+  }
+};
 
 const getSessionIdFromUrl = (): string | null => {
   const pathname = window.location.pathname;
@@ -35,6 +49,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { models } = useModels();
+  const { coords, ensureRequested } = useLocation();
   const [toolStatus, setToolStatus] = useState<string | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
   const isInitializedRef = useRef(false);
@@ -142,6 +157,9 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
     setError(null);
     setToolStatus(undefined);
 
+    // Prompts at most once per page; the send is not blocked on the answer.
+    ensureRequested();
+
     const controller = new AbortController();
     abortRef.current = controller;
     const previousSessionId = sessionId;
@@ -180,6 +198,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
           prompt: userMessage.content,
           ...(model && { model }),
           ...(sessionId && { sessionId }),
+          context: clientContext(coords),
         }),
       });
 
