@@ -1,12 +1,13 @@
 import { getSessionPreview, saveSession } from "@/db/repository/session";
 import { genLLMResponse } from "@/lib/openai/openai";
-import { LLMRequestType, ROLE } from "@/lib/openai/openai.type";
+import { ROLE } from "@/lib/openai/openai.type";
+import { getDefaultModel } from "@/lib/openai/models";
 import { genTitle } from "@/prompts";
 import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 
 export async function createSession(userPrompt: string): Promise<string> {
     const config = {
-        type: LLMRequestType.Chat,
+        model: await getDefaultModel(),
         sysPrompt: genTitle,
         userPrompt,
     };

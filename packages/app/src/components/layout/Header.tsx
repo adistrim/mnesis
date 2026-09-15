@@ -1,29 +1,31 @@
-import type { LLMRequestType } from '@/types/chat.type';
+import type { ModelOption } from '@/types/chat.type';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface Props {
-  type: LLMRequestType;
+  models: ModelOption[];
+  model?: string;
   isLoading: boolean;
-  setType: (t: LLMRequestType) => void;
+  setModel: (m: string) => void;
 }
 
-export function Header({ type, isLoading, setType }: Props) {
+export function Header({ models, model, isLoading, setModel }: Props) {
   return (
     <div className="bg-inherit px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <div>
-          <label htmlFor="type-select" className="sr-only">Select Mode</label>
+          <label htmlFor="model-select" className="sr-only">Select Model</label>
           <Select
-            value={type}
-            onValueChange={(v: LLMRequestType) => setType(v)}
-            disabled={isLoading}
+            value={model ?? ''}
+            onValueChange={setModel}
+            disabled={isLoading || models.length === 0}
           >
-            <SelectTrigger id="type-select" className="w-36">
-              <SelectValue placeholder="Select Mode" />
+            <SelectTrigger id="model-select" className="w-36">
+              <SelectValue placeholder={models.length === 0 ? 'Loading' : 'Select Model'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="chat">Chat</SelectItem>
-              <SelectItem value="reasoning">Reasoning</SelectItem>
+              {models.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -1,5 +1,5 @@
 import { getResponse } from "@/service/chat";
-import { LLMRequestType } from "@/lib/openai/openai.type";
+import { getDefaultModel, isKnownModel } from "@/lib/openai/models";
 import { createSession } from "@/service/session";
 import { invalidJsonError, validationError } from "@/lib/errors";
 import { chatRequestDto } from "./chat.dto";
@@ -20,11 +20,15 @@ chatRoute.post("/", async (ctx) => {
         });
     }
 
-    const { prompt, type, sessionId: providedSessionId } = parsed.data;
+    const { prompt, model, sessionId: providedSessionId } = parsed.data;
 
-    const requestType = type ?? LLMRequestType.Chat;
+    if (model && !(await isKnownModel(model))) {
+        throw validationError("Unknown model", { model });
+    }
+
+    const selectedModel = model ?? (await getDefaultModel());
     const sessionId = providedSessionId ?? (await createSession(prompt));
-    const response = await getResponse(sessionId, prompt, requestType);
+    const response = await getResponse(sessionId, prompt, selectedModel);
 
     return ctx.json({ response });
 });

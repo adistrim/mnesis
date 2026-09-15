@@ -2,10 +2,10 @@ import { ErrorDefinitions, type ErrorCode } from "./codes";
 
 const APP_ERROR_BRAND = Symbol("APP_ERROR_BRAND");
 
-export type AppError<C extends ErrorCode = ErrorCode> = {
+/** Extends Error so Hono's onError receives it; the brand keeps the type guard exact. */
+export type AppError<C extends ErrorCode = ErrorCode> = Error & {
     [APP_ERROR_BRAND]: true;
     code: C;
-    message: string;
     details?: unknown;
 };
 
@@ -20,11 +20,9 @@ export function makeAppError<C extends ErrorCode>(
 ): AppError<C> {
     const def = ErrorDefinitions[code];
     const message = input.message ?? def.message;
-    const error: AppError<C> = {
-        [APP_ERROR_BRAND]: true,
-        code,
-        message,
-    };
+    const error = new Error(message) as AppError<C>;
+    error[APP_ERROR_BRAND] = true;
+    error.code = code;
 
     if (input.details !== undefined) {
         error.details = input.details;

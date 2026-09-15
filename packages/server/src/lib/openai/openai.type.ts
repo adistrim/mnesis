@@ -1,24 +1,14 @@
 import type { promptType } from "@/prompts/prompt.type";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources";
 
-export enum LLMRequestType {
-    Chat = "chat",
-    Reasoning = "reasoning",
-}
-
 export const ROLE = {
     SYSTEM: "system",
     USER: "user",
     ASSISTANT: "assistant",
 } as const;
 
-export const MODEL = {
-    CHAT: "deepseek-chat",
-    REASONING: "deepseek-reasoner",
-} as const;
-
 export interface GenLLMResponseParams {
-    type: LLMRequestType;
+    model: string;
     sysPrompt: promptType;
     userPrompt: string;
     sessionContext?: Array<ChatCompletionMessageParam>;

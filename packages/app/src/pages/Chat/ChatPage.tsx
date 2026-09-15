@@ -10,12 +10,13 @@ export default function ChatPage() {
   const {
     messages,
     input,
-    type,
+    models,
+    model,
     isLoading,
     error,
     sessionId,
     setInput,
-    setType,
+    setModel,
     newSession,
     submit,
     loadSession
@@ -52,9 +53,10 @@ export default function ChatPage() {
 
       <div className="flex flex-col flex-1 h-full overflow-hidden min-h-0">
         <Header
-          type={type}
+          models={models}
+          model={model}
           isLoading={isLoading}
-          setType={setType}
+          setModel={setModel}
         />
 
         <MessageList

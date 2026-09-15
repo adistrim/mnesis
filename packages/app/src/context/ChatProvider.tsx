@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatContext } from './ChatContext';
-import type { ChatContextValue, Message, LLMRequestType } from '@/types/chat.type';
+import type { ChatContextValue, Message } from '@/types/chat.type';
 import { settings } from '@/config';
 import { ROLE } from '@/types/chat.type';
+import { useModels } from '@/hooks/useModels';
 
 const getSessionIdFromUrl = (): string | null => {
   const pathname = window.location.pathname;
@@ -27,11 +28,20 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
-  const [type, setType] = useState<LLMRequestType>('chat');
+  const [selectedModel, setModel] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { models } = useModels();
   const isInitializedRef = useRef(false);
   const refetchSessionsRef = useRef<(() => void) | null>(null);
+
+  // Derived, not stored: if the chosen model disappears from the live list,
+  // this falls back to the server's default without a reconciliation effect.
+  const defaultModel = models.find((m) => m.isDefault)?.id ?? models[0]?.id;
+  const model =
+    selectedModel && models.some((m) => m.id === selectedModel)
+      ? selectedModel
+      : defaultModel;
 
   const loadSession = useCallback(async (id: string) => {
     setIsLoading(true);
@@ -114,7 +124,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: userMessage.content,
-          type,
+          ...(model && { model }),
           ...(sessionId && { sessionId }),
         }),
       });
@@ -160,11 +170,12 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
     messages,
     input,
     sessionId,
-    type,
+    models,
+    model,
     isLoading,
     error,
     setInput,
-    setType,
+    setModel,
     newSession,
     submit,
     loadSession,

@@ -18,20 +18,25 @@ export const ROLE = {
     ASSISTANT: "assistant",
 } as const;
 
-export type LLMRequestType = 'chat' | 'reasoning';
+export type ModelOption = {
+  id: string;
+  label: string;
+  isDefault: boolean;
+};
 
 export type ChatState = {
   messages: Message[];
   input: string;
   sessionId?: string;
-  type: LLMRequestType;
+  models: ModelOption[];
+  model?: string;
   isLoading: boolean;
   error: string | null;
 };
 
 export type ChatActions = {
   setInput: (value: string) => void;
-  setType: (type: LLMRequestType) => void;
+  setModel: (model: string) => void;
   newSession: () => void;
   submit: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;

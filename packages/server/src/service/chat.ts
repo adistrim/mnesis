@@ -1,9 +1,6 @@
 import { genLLMResponse } from "@/lib/openai/openai";
 import { sysPrompt } from "@/prompts";
-import {
-    LLMRequestType,
-    type CustomResponseType,
-} from "@/lib/openai/openai.type";
+import { type CustomResponseType } from "@/lib/openai/openai.type";
 import { isValidLLMResponse } from "@/utils/validateLLMResponse";
 import { ensureSession, saveExchange } from "@/db/repository/message";
 import {
@@ -18,7 +15,7 @@ import { getToolDefinitions } from "@/tools";
 export async function getResponse(
     sessionId: string,
     userPrompt: string,
-    requestType: LLMRequestType,
+    model: string,
 ) {
     // ensure session exists
     const sessionExists = await ensureSession(sessionId);
@@ -33,7 +30,7 @@ export async function getResponse(
 
     // generate LLM response
     const completion = await genLLMResponse({
-        type: requestType,
+        model,
         sysPrompt,
         userPrompt,
         sessionContext,
@@ -58,7 +55,7 @@ export async function getResponse(
     const response_tokens = Math.max(completion_tokens - reasoning_tokens, 0);
     const message = customMsg.content;
     const reasoning = customMsg.reasoning_content;
-    const model = completion.model;
+    const respondedModel = completion.model;
 
     try {
         await saveExchange({
@@ -68,7 +65,7 @@ export async function getResponse(
                 tokens: prompt_tokens,
             },
             ai: {
-                model,
+                model: respondedModel,
                 content: message,
                 responseTokens: response_tokens,
                 reasoningTokens: reasoning_tokens ?? 0,

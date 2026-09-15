@@ -1,19 +1,13 @@
-import { settings } from "@/config/settings";
-import OpenAI from "openai";
-import {
-    MODEL,
-    ROLE,
-    LLMRequestType,
-    type GenLLMResponseParams,
-} from "./openai.type";
+import { ROLE, type GenLLMResponseParams } from "./openai.type";
 import type {
     ChatCompletion,
     ChatCompletionMessageParam,
 } from "openai/resources";
-import { isAppError, llmServiceError, validationError } from "@/lib/errors";
+import { isAppError, llmServiceError } from "@/lib/errors";
 import { executeTools } from "@/tools";
 import { type ToolCall } from "@/types/tools.type";
 import { MAX_TOOL_ITERATIONS } from "./constants";
+import { openai } from "./client";
 
 /*
     source: https://api-docs.deepseek.com/quick_start/parameter_settings
@@ -28,26 +22,12 @@ import { MAX_TOOL_ITERATIONS } from "./constants";
 
 const TEMPERATURE = 1.3;
 
-const openai = new OpenAI({
-    baseURL: settings.LLM_HOST,
-    apiKey: settings.LLM_HOST_API,
-});
-
 export async function genLLMResponse(
     params: GenLLMResponseParams,
 ): Promise<ChatCompletion> {
-    const { type, sysPrompt, userPrompt, sessionContext, tools } = params;
+    const { model, sysPrompt, userPrompt, sessionContext, tools } = params;
 
     const hasTools = Array.isArray(tools) && tools.length > 0;
-
-    let model;
-    if (type === LLMRequestType.Chat) {
-        model = MODEL.CHAT;
-    } else if (type === LLMRequestType.Reasoning) {
-        model = MODEL.REASONING;
-    } else {
-        throw validationError("Invalid request type", { type });
-    }
 
     const messages: ChatCompletionMessageParam[] = [
         { role: ROLE.SYSTEM, content: sysPrompt.content },
