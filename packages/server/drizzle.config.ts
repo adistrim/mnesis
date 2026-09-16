@@ -1,5 +1,4 @@
 import type { Config } from 'drizzle-kit';
-import { settings } from './src/config/settings';
 
 export default {
   schema: './src/db/schema/',
@@ -7,6 +6,6 @@ export default {
   strict: true,
   dialect: 'postgresql',
   dbCredentials: {
-    url: settings.DB_URL
+    url: process.env.DB_URL!
   }
 } satisfies Config;

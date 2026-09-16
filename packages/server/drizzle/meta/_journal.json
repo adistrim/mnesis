@@ -50,6 +50,13 @@
       "when": 1789476653001,
       "tag": "0006_charming_roxanne_simpson",
       "breakpoints": true
+    },
+    {
+        "idx": 7,
+        "version": "7",
+        "when": 1789540200000,
+        "tag": "0007_segmented_session_memory",
+        "breakpoints": true
     }
   ]
 }
