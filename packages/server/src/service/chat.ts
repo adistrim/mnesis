@@ -3,6 +3,9 @@ import { sysPrompt } from "@/prompts";
 import { ensureSession, saveExchange } from "@/db/repository/message";
 import { isAppError, sessionNotFoundError } from "@/lib/errors";
 import { buildSessionContext } from "./session";
+import { compactSession } from "./compaction";
+import { getSessionPreview } from "@/db/repository/session";
+import { getMemorySegments } from "@/db/repository/session-memory";
 import { getToolDefinitions } from "@/tools";
 import { citedSources } from "@/tools/sources";
 import { createAccumulator, type StreamEvent } from "@/lib/openai/stream.type";
@@ -26,6 +29,22 @@ export async function* streamResponse(
 
     const sessionContext = await buildSessionContext(sessionId);
     const tools = getToolDefinitions();
+
+    // Compaction runs alongside the stream rather than after it. The stream takes seconds,
+    // so this is invisible; and because it is awaited before this generator returns, it is
+    // guaranteed to finish on both the Bun and Vercel deploys — a detached promise would
+    // be frozen on the latter. This turn uses the pre-compaction context; the next benefits.
+    const compaction = Promise.all([
+        getSessionPreview(sessionId),
+        getMemorySegments(sessionId).catch(() => []),
+    ])
+        .then(([preview, segments]) =>
+            compactSession(sessionId, preview, segments),
+        )
+        .catch((error) => {
+            console.error("Compaction scheduling failed", { sessionId, error });
+            return false;
+        });
     const acc = createAccumulator(model);
 
     let finalized = false;
@@ -92,5 +111,7 @@ export async function* streamResponse(
         );
     } finally {
         await finalize();
+        // Never let compaction surface as a turn failure.
+        await compaction;
     }
 }

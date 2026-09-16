@@ -69,19 +69,24 @@ export async function getSessionPreview(sessionId: string) {
         const rows = (await db_client`
             (
                 SELECT id, content, created_at::text as "createdAt", ${ROLE.USER} as role,
-                       NULL::text as reasoning, NULL::jsonb as citations
+                       0 as role_rank, NULL::text as reasoning, NULL::jsonb as citations
                 FROM user_messages
                 WHERE session_id = ${sessionId}::uuid
             )
             UNION ALL
             (
                 SELECT a.id, a.content, a.created_at::text as "createdAt", ${ROLE.ASSISTANT} as role,
-                       r.content as reasoning, a.citations
+                       1 as role_rank, r.content as reasoning, a.citations
                 FROM ai_messages a
                 LEFT JOIN ai_message_reasonings r ON r.message_id = a.id
                 WHERE a.session_id = ${sessionId}::uuid
             )
-            ORDER BY "createdAt", id
+            -- A pair shares both created_at AND id, because the two tables have
+            -- independent identity sequences that advance in lockstep. Without role_rank
+            -- the sort is a total tie, leaving the order undefined and letting the
+            -- pairing loop below attach an assistant row to the wrong exchange.
+            -- ORDER BY on a UNION may only reference output columns, hence the column.
+            ORDER BY "createdAt", role_rank, id
         `) as unknown as SessionHistoryRow[];
 
         const exchanges: SessionExchange[] = [];

@@ -1,0 +1,2 @@
+CREATE INDEX "ai_messages_session_created_idx" ON "ai_messages" USING btree ("session_id","created_at","id");--> statement-breakpoint
+CREATE INDEX "user_messages_session_created_idx" ON "user_messages" USING btree ("session_id","created_at","id");

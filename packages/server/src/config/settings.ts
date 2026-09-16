@@ -22,6 +22,12 @@ const envSchema = z.object({
     FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
     WEB_SEARCH_MAX_RESULTS_DEFAULT: z.coerce.number().int().positive().default(10),
     WEB_SEARCH_MAX_RESULTS_MAX: z.coerce.number().int().positive().default(10),
+    // Context compaction. Absolute token figures rather than a fraction of the model
+    // window: both DeepSeek models expose 1M tokens, but answer quality degrades far
+    // earlier than that, and quality is what this exists to protect.
+    COMPACT_TRIGGER_TOKENS: z.coerce.number().int().positive().default(24000),
+    COMPACT_TARGET_TOKENS: z.coerce.number().int().positive().default(8000),
+    COMPACT_MIN_EXCHANGES: z.coerce.number().int().positive().default(4),
     CORS_ALLOWED_ORIGINS: z
         .string()
         .optional()

@@ -95,14 +95,20 @@ export async function* streamLLMResponse(
         params;
     const hasTools = Array.isArray(tools) && tools.length > 0;
 
+    // Ordered most-stable-first, because a change anywhere invalidates every cache
+    // prefix unit after it:
+    //   static prompt   — never changes, shared by every user
+    //   session history — append-only
+    //   request context — carries minute-precision local time, so it changes constantly
+    //   new user message — uncached regardless
+    // Putting the volatile context second (as it was) diverged the prefix on any turn
+    // that started in a different minute, which missed the entire replayed history.
     const messages: ChatCompletionMessageParam[] = [
-        // The static prompt stays its own message so it remains one cache unit shared by
-        // every user; volatile per-user context goes in a separate message after it.
         { role: ROLE.SYSTEM, content: sysPrompt.content },
+        ...(sessionContext ?? []),
         ...(requestContext
             ? [{ role: ROLE.SYSTEM, content: renderContext(requestContext) } as const]
             : []),
-        ...(sessionContext ?? []),
         { role: ROLE.USER, content: userPrompt },
     ];
 
@@ -219,9 +225,12 @@ export async function* streamLLMResponse(
 }
 
 /** Drains a turn to its text — for turns that have no use for deltas. */
-export async function genLLMText(params: GenLLMResponseParams): Promise<string> {
+export async function genLLMText(
+    params: GenLLMResponseParams,
+    signal?: AbortSignal,
+): Promise<string> {
     const acc = createAccumulator(params.model);
-    for await (const _event of streamLLMResponse(params, acc)) {
+    for await (const _event of streamLLMResponse(params, acc, signal)) {
         // deltas are already accumulated into `acc`
     }
     return acc.content;
